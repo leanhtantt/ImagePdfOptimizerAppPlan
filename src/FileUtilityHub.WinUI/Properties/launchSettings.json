@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "FileUtilityHub.WinUI (Package)": {
+      "commandName": "MsixPackage"
+    },
+    "FileUtilityHub.WinUI (Unpackaged)": {
+      "commandName": "Project"
+    }
+  }
+}

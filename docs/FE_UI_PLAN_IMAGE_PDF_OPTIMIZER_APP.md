@@ -1,0 +1,403 @@
+# FE/UI Source Plan: Feature 01 Image PDF Optimizer
+
+> Phạm vi: đây là bản FE plan nguồn cho **Feature 01**, không phải UI plan cho toàn bộ app suite.
+
+> Scope MVP đã chốt: chỉ làm AVIF -> PDF RGB -> chỉnh q -> chọn final. Không làm WebP/Both và không làm target size/auto optimize trong MVP. FFmpeg phải được bundle sẵn trong app/package, không yêu cầu user cấu hình path.
+
+## 1. Phản biện plan
+
+Plan gốc đã rõ về workflow xử lý file và các business rule quan trọng: nén AVIF trước, review dung lượng, combine PDF giữ màu RGB, chỉnh q để tạo lại PDF nhanh, không sửa file gốc.
+
+Các điểm FE cần làm rõ thêm khi triển khai:
+
+- App là tool Windows cho người không kỹ thuật, nên giao diện phải ưu tiên thao tác nhanh hơn là nhiều tuỳ chọn kỹ thuật.
+- Các thuật ngữ `CRF`, `JPEG q` không nên hiện như nhãn chính. Chỉ hiện trong khu vực nâng cao.
+- Workflow chính không nên bị chia thành quá nhiều màn hình rời. Nên dùng một màn hình chính với sidebar workflow, khu preview/list ở giữa và panel setting bên phải.
+- Mọi tác vụ dài như scan folder, convert, combine PDF phải có progress rõ ràng để người dùng không nghĩ app bị treo.
+- Gray mode, output nặng hơn file gốc, file không hỗ trợ, thiếu FFmpeg, lỗi ghi file đều phải có warning/error dễ hiểu.
+- Cần có danh sách các bản PDF đã tạo trong phiên làm việc để người dùng so sánh và chọn bản final.
+
+Giả định thiết kế:
+
+- MVP dùng WinForms trên Windows.
+- Chỉ có một nhóm người dùng chính, không có phân quyền.
+- Không cần responsive kiểu web/mobile, nhưng phải dùng tốt trên màn hình tối thiểu `1366x768`.
+- Giao diện dùng tiếng Việt có dấu.
+- Màu chủ đạo là đỏ đậm cho header, vùng nhấn mạnh và nút chính; nền chính là trắng.
+
+## 2. UX flow đề xuất
+
+### Luồng chính
+
+```text
+Mở app
+-> Chọn folder hoặc kéo thả file/folder
+-> App scan và hiển thị danh sách ảnh
+-> Người dùng chỉnh preset AVIF/resolution
+-> Bấm "Nén AVIF"
+-> App convert và hiển thị kết quả dung lượng
+-> Người dùng review ảnh đã nén
+-> Bấm "Tạo PDF"
+-> App tạo PDF với q mặc định
+-> Người dùng xem dung lượng PDF
+-> Nếu chưa ưng, chỉnh q và bấm "Tạo lại PDF"
+-> Chọn bản PDF tốt nhất
+-> Bấm "Đặt làm bản final"
+-> Mở folder output hoặc mở file PDF
+```
+
+### Luồng phụ
+
+- Nếu file output nặng hơn file gốc: hiển thị warning và gợi ý tăng mức nén hoặc giảm resolution.
+- Nếu người dùng bật Gray mode: hiện confirm, mặc định khuyến nghị giữ RGB.
+- Nếu thiếu FFmpeg: chặn thao tác convert/combine và hiển thị hướng dẫn cấu hình.
+- Nếu có file không hỗ trợ: vẫn cho xử lý các file hợp lệ, nhưng hiển thị danh sách file bị bỏ qua.
+- Nếu output đã tồn tại: hỏi ghi đè, tạo tên mới hoặc bỏ qua.
+- Nếu người dùng chỉ chỉnh q PDF: không bắt convert AVIF lại.
+
+## 3. Danh sách màn hình và vùng giao diện
+
+| Màn hình / vùng | Mục đích | Thành phần chính | State cần có |
+| --- | --- | --- | --- |
+| Header | Nhận diện app và thao tác nhanh | Tên app, folder đang chọn, nút chọn folder, nút mở output | Default, disabled, processing |
+| Workflow sidebar | Cho biết tiến độ xử lý | Stepper: Chọn ảnh, Nén AVIF, Review, Tạo PDF, Xuất file | Chưa làm, đang chạy, hoàn tất, có lỗi |
+| Dropzone / input | Nhập file/folder ảnh | Vùng kéo thả, nút chọn folder, thống kê file | Empty, drag over, loading, error |
+| File list | Kiểm tra danh sách ảnh | Tên file, định dạng, size gốc, size output, trạng thái | Empty, loaded, warning, error |
+| Preview | Xem ảnh hiện tại | Ảnh preview, zoom fit/100%, điều hướng trước/sau | Empty, loading, image loaded, preview error |
+| Panel AVIF | Chỉnh cấu hình nén ảnh | Output format, quality slider, resolution, advanced | Default, disabled, processing |
+| Panel PDF | Chỉnh cấu hình PDF | Page mode, color mode, q slider | Default, warning, disabled, processing |
+| PDF versions | So sánh bản PDF đã tạo | Danh sách q12/q14/final, size, nút mở, đặt final | Empty, loaded, warning |
+| Log drawer/modal | Xem lỗi chi tiết | Log ngắn, copy log, mở folder log | Empty, error list |
+
+## 4. Hướng UI
+
+### Visual direction
+
+Giao diện nên theo hướng sạch, chắc, giống tool làm việc nội bộ trên Windows. Không làm landing page, không dùng hero, không dùng trang trí lớn. Trọng tâm là file, preview, dung lượng và nút hành động.
+
+### Bố cục chính
+
+```text
+┌────────────────────────────────────────────────────────────────────┐
+│ Header đỏ đậm: Image PDF Optimizer        [Chọn folder] [Mở output] │
+├───────────────┬──────────────────────────────────┬─────────────────┤
+│ Workflow       │ File list + Preview              │ Thiết lập        │
+│ 1 Chọn ảnh     │                                  │ AVIF             │
+│ 2 Nén AVIF     │ Preview ảnh lớn                  │ PDF              │
+│ 3 Review       │                                  │ Kết quả          │
+│ 4 Tạo PDF      │ Danh sách file / PDF versions    │                 │
+│ 5 Xuất file    │                                  │                 │
+└───────────────┴──────────────────────────────────┴─────────────────┘
+```
+
+Kích thước gợi ý cho màn `1366x768`:
+
+- Header: `60px`.
+- Sidebar trái: `180-220px`.
+- Panel phải: `320-360px`, có scroll.
+- Khu giữa: chiếm phần còn lại, ưu tiên preview ảnh.
+- Min window đề xuất: `1200x720`.
+
+### Màu sắc
+
+| Vai trò | Màu | Hex | Cách dùng |
+| --- | --- | --- | --- |
+| Primary đỏ đậm | Burgundy Red | `#8B1E2D` | Header, nút chính, step active |
+| Primary hover | Deep Red | `#6F1724` | Hover/pressed button |
+| Primary soft | Pale Red | `#F8E8EA` | Dropzone hover, badge active nhẹ |
+| Nền chính | White | `#FFFFFF` | Nền app và khu làm việc |
+| Nền phụ | Warm Gray | `#F6F4F2` | Sidebar, panel, vùng grouping |
+| Border | Light Gray | `#E5E7EB` | Divider, table border, input border |
+| Text chính | Charcoal | `#252525` | Tiêu đề, label chính |
+| Text phụ | Cool Gray | `#6B7280` | Helper text, metadata |
+| Success | Green | `#1F8A5B` | Hoàn tất, giảm dung lượng tốt |
+| Warning | Amber | `#B7791F` | File nặng hơn gốc, Gray mode |
+| Error | Red Orange | `#C2410C` | Lỗi convert, file hỏng |
+| Info | Muted Blue | `#2563EB` | Link, tooltip, trạng thái đang xử lý |
+
+Nguyên tắc dùng màu:
+
+- Đỏ đậm là màu thương hiệu và hành động chính, không phủ toàn bộ app.
+- Nền làm việc chính luôn là trắng để đọc file và preview dễ.
+- Sidebar/panel dùng xám nhạt để chia vùng.
+- Success/warning/error dùng màu riêng, không dùng đỏ đậm cho mọi trạng thái.
+
+### Typography
+
+WinForms có thể dùng font mặc định hệ thống, ưu tiên:
+
+- Font: `Segoe UI`.
+- Tiêu đề header: `16-18px`, semibold.
+- Section title: `13-14px`, semibold.
+- Body/input/table: `12-13px`.
+- Helper text: `11-12px`.
+
+Không dùng chữ quá lớn. Đây là tool xử lý hồ sơ, cần mật độ thông tin vừa phải.
+
+### Button
+
+- Primary: nền `#8B1E2D`, chữ trắng, dùng cho `Nén AVIF`, `Tạo PDF`, `Đặt làm bản final`.
+- Secondary: nền trắng, viền xám, dùng cho `Tạo lại`, `Mở folder`, `Xem log`.
+- Warning action: dùng amber nhẹ hoặc text warning, không dùng nếu không cần.
+- Button disabled phải có tooltip hoặc helper text giải thích lý do.
+
+### Trang trí
+
+Chỉ dùng trang trí chức năng:
+
+- Header đỏ đậm.
+- Vạch active màu đỏ ở step hiện tại.
+- Dropzone có border đỏ nhạt khi kéo file vào.
+- Badge trạng thái nhỏ.
+- Không dùng gradient, background phức tạp hoặc card lồng card.
+
+## 5. Component frontend
+
+### Layout components
+
+- `MainForm`: form chính của app.
+- `AppHeader`: header đỏ đậm, folder hiện tại, action nhanh.
+- `WorkflowSidebar`: stepper trạng thái.
+- `WorkspacePanel`: vùng giữa chứa preview và danh sách.
+- `SettingsPanel`: panel phải có scroll.
+- `StatusBar`: tiến trình ngắn, số file, trạng thái job hiện tại.
+
+### Input/file components
+
+- `DropZone`: chọn/kéo thả folder/file.
+- `FileTable`: danh sách ảnh input/output.
+- `FileStatusBadge`: hợp lệ, bỏ qua, lỗi, output nặng hơn gốc.
+- `UnsupportedFileList`: danh sách file không hỗ trợ.
+
+### Preview components
+
+- `ImagePreview`: xem ảnh đang chọn.
+- `PreviewToolbar`: fit, 100%, trước, sau.
+- `EmptyPreview`: trạng thái chưa có ảnh.
+
+### AVIF setting components
+
+- `QualityStepperSlider`: dùng cho CRF/q.
+- `ResolutionSelector`: giữ nguyên / 1920 / 2048 / 2560 / custom.
+- `AdvancedOptionsPanel`: CRF, CPU effort.
+
+### PDF setting components
+
+- `PageModeSelector`: theo kích thước ảnh / Fit A4 / Full A4.
+- `ColorModeSelector`: RGB / Gray.
+- `GrayModeConfirmDialog`: cảnh báo mất màu dấu.
+- `PdfQualitySlider`: chỉnh q PDF.
+- `PdfVersionList`: danh sách PDF đã tạo.
+- `FinalPdfBanner`: hiển thị bản final đã chọn.
+
+### Feedback components
+
+- `ProgressPanel`: progress bar, file hiện tại, số lượng đã xử lý.
+- `ToastMessage`: thông báo ngắn sau thao tác.
+- `WarningBox`: cảnh báo có hướng xử lý.
+- `ErrorBox`: lỗi có nút retry/copy log.
+- `LogDialog`: xem log chi tiết.
+
+## 6. State và hành vi UI
+
+### App state chính
+
+```text
+NoInput
+InputLoaded
+AvifConverting
+AvifReady
+PdfGenerating
+PdfReady
+FinalSelected
+Error
+```
+
+### Quy tắc enable/disable
+
+| Action | Điều kiện enabled |
+| --- | --- |
+| Nén AVIF | Có ít nhất 1 file ảnh hợp lệ và không có job đang chạy |
+| Review AVIF | Đã convert thành công ít nhất 1 file |
+| Tạo PDF | Có AVIF ready và không có job đang chạy |
+| Tạo lại PDF | Có AVIF ready và đã chọn cấu hình PDF hợp lệ |
+| Đặt làm final | Có ít nhất 1 PDF version |
+| Mở output | Folder output tồn tại |
+| Bật Gray | Luôn cho bật, nhưng phải confirm |
+
+### Empty state
+
+Khi chưa chọn file:
+
+```text
+Kéo thả folder ảnh vào đây
+hoặc
+[Chọn folder ảnh]
+
+Hỗ trợ: jpg, jpeg, png, avif, bmp, tif, tiff
+```
+
+### Loading state
+
+Khi đang xử lý:
+
+- Hiển thị progress bar.
+- Hiển thị file hiện tại.
+- Hiển thị số lượng `12/45 ảnh`.
+- Disable các action có thể gây chạy song song.
+- Nếu hỗ trợ huỷ, dùng nút `Huỷ xử lý`.
+
+### Warning state
+
+Các warning bắt buộc:
+
+- Output nặng hơn file gốc.
+- Gray mode có thể mất màu con dấu.
+- File không hỗ trợ bị bỏ qua.
+- PDF đang lớn hơn mục tiêu.
+- FFmpeg chưa cấu hình đúng.
+
+### Error state
+
+Lỗi phải dễ hiểu với người không kỹ thuật:
+
+- "Không đọc được file ảnh này."
+- "Không tạo được folder output."
+- "Không tìm thấy FFmpeg."
+- "Tạo PDF thất bại. Hãy xem log để biết chi tiết."
+
+Không chỉ hiển thị raw exception.
+
+## 7. Mock data và contract cần core/BE hỗ trợ
+
+App desktop có thể không có backend, nhưng frontend vẫn cần contract rõ với tầng xử lý file/core service.
+
+### Image item
+
+```json
+{
+  "id": "img_001",
+  "fileName": "page-001.jpg",
+  "sourcePath": "C:\\Input\\page-001.jpg",
+  "format": "jpg",
+  "originalSizeBytes": 2450000,
+  "outputPath": "C:\\Input\\compressed-avif\\page-001.avif",
+  "outputSizeBytes": 180000,
+  "status": "success",
+  "warning": null,
+  "errorMessage": null
+}
+```
+
+### Job progress
+
+```json
+{
+  "jobType": "convert_avif",
+  "status": "running",
+  "currentFile": "page-012.jpg",
+  "processedCount": 12,
+  "totalCount": 45,
+  "message": "Đang nén ảnh 12/45"
+}
+```
+
+### PDF version
+
+```json
+{
+  "id": "pdf_q12_rgb",
+  "fileName": "Sao ke GD-q12-rgb.pdf",
+  "path": "C:\\Input\\pdf-output\\Sao ke GD-q12-rgb.pdf",
+  "sizeBytes": 1400000,
+  "jpegQ": 12,
+  "colorMode": "rgb",
+  "pageMode": "image_size",
+  "isFinal": false,
+  "warnings": []
+}
+```
+
+### Cấu hình AVIF
+
+```json
+{
+  "format": "avif",
+  "crf": 24,
+  "cpuUsed": 4,
+  "maxLongEdge": 2048,
+  "skipIfOutputLarger": true
+}
+```
+
+### Cấu hình PDF
+
+```json
+{
+  "pageMode": "image_size",
+  "colorMode": "rgb",
+  "jpegQ": 12
+}
+```
+
+## 8. Cấu trúc form WinForms đề xuất
+
+```text
+MainForm
+├── HeaderPanel
+│   ├── AppTitleLabel
+│   ├── CurrentFolderLabel
+│   ├── ChooseFolderButton
+│   └── OpenOutputButton
+├── BodySplitContainer
+│   ├── WorkflowPanel
+│   └── MainSplitContainer
+│       ├── WorkspacePanel
+│       │   ├── DropZonePanel
+│       │   ├── PreviewPanel
+│       │   └── FileTable
+│       └── SettingsScrollPanel
+│           ├── AvifSettingsGroup
+│           ├── PdfSettingsGroup
+│           ├── PdfVersionsGroup
+│           └── LogSummaryGroup
+└── StatusBarPanel
+```
+
+Ưu tiên dùng `SplitContainer`, `TableLayoutPanel`, `FlowLayoutPanel`, `Panel AutoScroll` để layout co giãn ổn định.
+
+## 9. Checklist kiểm tra UI
+
+- Header đỏ đậm rõ nhận diện, nhưng không làm app bị nặng màu.
+- Nền chính trắng, panel phụ xám nhạt, text dễ đọc.
+- App dùng tốt ở `1366x768`, không mất button quan trọng.
+- Panel phải scroll được khi nội dung dài.
+- Chưa chọn file thì chỉ thấy action chọn/kéo thả, không có nút gây hiểu nhầm.
+- Có file không hỗ trợ thì app vẫn xử lý file hợp lệ.
+- Convert AVIF có progress rõ ràng.
+- Sau convert, người dùng thấy tổng dung lượng gốc, AVIF và tỷ lệ tiết kiệm.
+- File output nặng hơn file gốc có warning rõ.
+- Chưa có AVIF thì không tạo PDF được.
+- PDF mặc định dùng RGB và page mode theo kích thước ảnh.
+- Bật Gray mode phải confirm.
+- Mỗi lần tạo PDF tạo thêm một item trong danh sách PDF versions.
+- Người dùng có thể mở từng PDF version và đặt một bản làm final.
+- Slider PDF q có nhãn `Đẹp hơn` và `Nhẹ hơn`, không bắt người dùng hiểu q.
+- Advanced setting có thể ẩn/hiện, không làm rối MVP.
+- Lỗi FFmpeg/file/folder được hiển thị bằng tiếng Việt dễ hiểu.
+- Log chi tiết có thể copy khi cần debug.
+
+## 10. Handoff cho dev
+
+Ưu tiên build MVP theo thứ tự:
+
+1. Dựng layout chính: header, sidebar, workspace, settings panel.
+2. Làm input folder/file, file list và empty/loading/error states.
+3. Làm AVIF settings và progress convert.
+4. Làm review dung lượng AVIF.
+5. Làm PDF settings, q slider và tạo PDF.
+6. Làm PDF versions list và đặt final.
+7. Làm warning/confirm cho Gray mode và output nặng hơn gốc.
+8. Polish màu sắc, spacing, disabled state và log dialog.
+
+Không làm target size auto optimize, WebP/Both, preview trước/sau, batch nhiều folder hoặc drag reorder nâng cao trong MVP đầu tiên.
