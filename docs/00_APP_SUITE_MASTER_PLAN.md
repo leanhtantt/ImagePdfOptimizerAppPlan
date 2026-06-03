@@ -78,6 +78,21 @@ Core app gồm:
 
 Feature-specific logic nằm trong từng module riêng.
 
+## 5.1. UI framework decision
+
+Nếu chọn làm UI bằng WinUI ngay, quyết định này áp dụng cho cả shell và feature content:
+
+- Shell dùng WinUI native controls/patterns.
+- Feature 01 dùng WinUI `UserControl`, `ListView.ItemTemplate`, `InfoBar`, `ContentDialog`, shared controls và MVVM.
+- Core/shared/infrastructure vẫn tách khỏi UI framework để không khóa business logic vào XAML/code-behind.
+
+Hai tài liệu bổ sung bắt buộc đọc trước khi implement WinUI:
+
+```text
+06_WINUI_UI_DIRECTION.md
+07_CORE_TECHNICAL_DIRECTION.md
+```
+
 ## 6. Kiến trúc module đề xuất
 
 ```text

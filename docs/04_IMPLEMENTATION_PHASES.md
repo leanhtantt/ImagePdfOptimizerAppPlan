@@ -6,7 +6,7 @@
 
 Mục tiêu:
 
-- Tạo project `.NET 8 WinForms` theo hướng app nhiều tab/module.
+- Tạo project `.NET 8 + WinUI 3 / Windows App SDK` theo hướng app nhiều tab/module.
 - Tạo shell chung trước, không hardcode app chỉ có một feature.
 - Tạo module `ImagePdfOptimizer`.
 - Tạo model/core service skeleton.
@@ -14,7 +14,7 @@ Mục tiêu:
 Deliverables:
 
 - App mở được.
-- MainForm có tab/module navigation.
+- `MainWindow` có `NavigationView`/module navigation và feature host.
 - Tab Feature 01 mở được.
 - Các tab khác có thể là placeholder.
 - Có folder `Shared`, `Infrastructure`, `Features/ImagePdfOptimizer`.
@@ -61,7 +61,7 @@ Acceptance:
 - Output nặng hơn gốc có warning.
 - Có tổng dung lượng trước/sau.
 
-## Phase 3: WinForms UI shell
+## Phase 3: WinUI UI shell
 
 Mục tiêu:
 
@@ -69,17 +69,40 @@ Mục tiêu:
 
 Deliverables:
 
-- Header.
-- Workflow sidebar.
+- Shell `NavigationView`.
+- Header/action area.
+- Feature host render `ImagePdfOptimizer` view.
 - Workspace.
 - Settings panel có scroll.
-- Status bar.
+- Status/progress area.
+- Resource dictionary cho theme/spacing/semantic brushes.
 
 Acceptance:
 
 - Dùng tốt trên 1366x768.
 - Button chính không bị khuất.
 - Empty/loading/success/warning/error/disabled state cơ bản.
+- Shell và feature content dùng chung visual language, không để navigation/header Fluent nhưng list/settings là control thô.
+
+## Phase 3.1: WinUI-content integration gate
+
+Mục tiêu:
+
+- Chặn tình trạng chỉ có vỏ WinUI còn ruột feature không theo Fluent/MVVM.
+
+Deliverables:
+
+- `DropZoneControl` dùng WinUI visual states.
+- `FileTableView` dùng `ListView.ItemTemplate`, có thumbnail/name/size/status/warning.
+- `QualityStepperSlider` dùng chung cho AVIF CRF và PDF q.
+- Warning/error dùng `InfoBar`/`ContentDialog`.
+- ViewModel expose state/commands trước khi nối FFmpeg thật.
+
+Acceptance:
+
+- Không có file scan/FFmpeg/PDF logic trong code-behind.
+- Không có list file dạng text thô thay cho `ListView.ItemTemplate`.
+- Không hardcode style từng màn nếu đã có shared resource.
 
 ## Phase 4: Preview và review AVIF
 

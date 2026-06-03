@@ -21,6 +21,17 @@ App là bộ công cụ xử lý file local trên Windows. UI cấp suite phải
 - Cho các feature dùng chung shell mà không phải tự dựng lại header/status/log.
 - Không để Feature 01 chi phối toàn bộ layout của app.
 
+## 2.1. WinUI shell decision
+
+Nếu implement theo WinUI 3 / Windows App SDK, shell phải dùng native Fluent pattern làm nền:
+
+- Module navigation ưu tiên `NavigationView`.
+- Global warning/error ưu tiên `InfoBar`.
+- Confirm/settings/log ưu tiên `ContentDialog` hoặc page/flyout WinUI.
+- Shared resources quản lý spacing, typography, semantic brushes và primary action style.
+
+Feature content render trong shell cũng phải theo cùng visual language. Không chấp nhận shell nhìn Fluent nhưng nội dung module là list/label/button tự chế rời rạc.
+
 ## 3. Layout shell tổng
 
 ```text

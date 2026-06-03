@@ -4,7 +4,7 @@
 
 ## 1. Tổng quan
 
-App dùng kiến trúc WinForms shell + core/shared/infrastructure + feature modules.
+App dùng kiến trúc WinUI 3 shell + core/shared/infrastructure + feature modules.
 
 ```text
 FileUtilityHub.App
@@ -23,8 +23,10 @@ Mục tiêu là tách app shell khỏi feature logic để sau này thêm PDF Co
 FileUtilityHub
 ├── FileUtilityHub.App
 │   ├── Shell
-│   ├── Forms
+│   ├── MainWindow.xaml
+│   ├── Views
 │   ├── ViewModels
+│   ├── Resources
 │   └── Program.cs
 ├── FileUtilityHub.Core
 │   ├── Models
@@ -46,6 +48,7 @@ FileUtilityHub
 │   └── ImagePdfOptimizer
 │       ├── Models
 │       ├── Services
+│       ├── Views
 │       ├── Controls
 │       └── ImagePdfOptimizerModule.cs
 └── FileUtilityHub.Tests
@@ -92,6 +95,18 @@ Trách nhiệm:
 - Combine PDF từ ảnh đã nén.
 - PDF versions/final.
 - Feature-specific settings và UI panel.
+
+## 2.2. WinUI/core binding rule
+
+Khi code UI bằng WinUI, bắt buộc giữ các ranh giới sau:
+
+- `MainWindow`/shell chỉ render navigation, feature host, global status, global tool status và header actions.
+- Feature view chỉ binding ViewModel state/commands; không build FFmpeg command trong XAML code-behind.
+- Core models/results/warnings không reference WinUI.
+- Infrastructure chạy process/file system/log; không show dialog hoặc toast.
+- Shared WinUI controls chỉ nhận state/input và phát command/event; không chứa workflow nghiệp vụ.
+
+Nếu một UI control cần biết path FFmpeg, build command hoặc ghi output file, đó là dấu hiệu vỏ và ruột đã lệch. Đưa logic đó về workflow service/infrastructure.
 
 ## 3. Models
 
@@ -309,7 +324,7 @@ Test tối thiểu:
 
 - FFmpeg bundled không tồn tại, sai path đóng gói, hoặc không hỗ trợ `libaom-av1`.
 - AVIF decode chậm.
-- System.Drawing trên Windows chỉ dùng cho WinForms OK nhưng cần kiểm tra.
+- WinUI image preview/bitmap loading cần kiểm tra memory usage với ảnh lớn; tránh giữ toàn bộ ảnh full-resolution trong UI nếu không cần.
 - PDF writer nội bộ cần test kỹ với nhiều ảnh.
 - Unicode path tiếng Việt phải được xử lý đúng.
 

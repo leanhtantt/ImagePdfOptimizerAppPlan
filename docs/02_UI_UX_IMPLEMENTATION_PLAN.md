@@ -1,6 +1,8 @@
 # Feature 01 UI/UX Implementation Plan
 
 > Phạm vi: tài liệu này chỉ áp dụng cho **Feature 01: Image -> AVIF -> PDF Optimizer**. UI shell cấp app suite nằm ở `00_SUITE_UI_UX_SHELL_PLAN.md`.
+>
+> WinUI decision: khi implement bằng WinUI 3 / Windows App SDK, tài liệu này phải được đọc cùng `06_WINUI_UI_DIRECTION.md`. Các component dưới đây là intent UI; implementation cụ thể phải dùng WinUI native controls, `ThemeResource`, `DataTemplate` và MVVM để tránh vỏ WinUI nhưng ruột là layout/form tự chế.
 
 ## 1. Hướng UI
 
@@ -91,9 +93,9 @@ State UI bắt buộc:
 
 ### Layout
 
-- `MainForm`
-- `AppHeader`
-- `WorkflowSidebar`
+- `MainWindow` / feature `UserControl`
+- `AppHeader` hoặc shell header action area
+- `WorkflowSidebar` trong feature; suite navigation dùng `NavigationView`
 - `WorkspacePanel`
 - `SettingsPanel`
 - `StatusBar`
@@ -157,6 +159,21 @@ Mapping:
 | PDF | JPEG q | 4-20 | 1-30 | Thấp hơn đẹp hơn |
 
 WebP không thuộc MVP đầu tiên nên không dựng UI WebP/Both.
+
+## 6.1. WinUI implementation binding
+
+Khi code bằng WinUI, các component ở mục trên phải map như sau:
+
+| Component intent | WinUI binding bắt buộc | Không được làm |
+|---|---|---|
+| Module navigation | `NavigationView` ở shell | Sidebar tự vẽ không có selected/hover/focus Fluent |
+| File table | `ListView` với `ItemTemplate` rõ thumbnail/name/size/status | List text thô chỉ hiển thị filename |
+| Warning/error | `InfoBar` hoặc `ContentDialog` theo mức độ | Raw exception text hoặc label đỏ tự chế |
+| CRF/q stepper-slider | Shared `UserControl` compose từ `Slider`, `NumberBox`, `Button` | Hai control rời rạc mỗi nơi một kiểu |
+| Settings panel | `ScrollViewer` + section/card style từ resource dictionary | Panel cố định làm mất button ở 1366x768 |
+| PDF versions | `ListView` hoặc card list có final/warning badge | Text log thay cho version list |
+
+Trước khi implement một màn, phải xác định ViewModel state, command và DataTemplate tương ứng. Không đưa file scan, FFmpeg command, PDF generation vào code-behind.
 
 ## 7. Enable/disable rules
 

@@ -1,5 +1,14 @@
 # MVP Acceptance Checklist
 
+## 0. WinUI/core alignment
+
+- [ ] App dùng WinUI 3 / Windows App SDK nếu đã chọn hướng WinUI.
+- [ ] Shell dùng module navigation/feature host, không hardcode riêng Feature 01 vào toàn bộ app.
+- [ ] Module navigation dùng `NavigationView` hoặc pattern WinUI tương đương.
+- [ ] Feature content dùng `ListView.ItemTemplate`, `InfoBar`, `ContentDialog`, shared `QualityStepperSlider` và resource dictionary; không chỉ có vỏ shell Fluent.
+- [ ] ViewModel chỉ giữ state/commands; code-behind không build FFmpeg command hoặc xử lý workflow nghiệp vụ.
+- [ ] Core/infrastructure không reference WinUI.
+
 ## 1. File input
 
 - [ ] Chọn folder ảnh được.

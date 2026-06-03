@@ -19,7 +19,7 @@ Tài liệu này là nguồn điều phối chính. Các file plan nhỏ đi kè
 
 ## 3. Mục tiêu MVP
 
-Build một app Windows dùng `.NET 8 WinForms + FFmpeg` để người dùng không kỹ thuật có thể:
+Build một app Windows dùng `.NET 8 + WinUI 3 / Windows App SDK + FFmpeg` để người dùng không kỹ thuật có thể:
 
 1. Chọn hoặc kéo thả folder ảnh.
 2. Convert ảnh sang AVIF siêu nhẹ trước.
@@ -44,7 +44,7 @@ Build một app Windows dùng `.NET 8 WinForms + FFmpeg` để người dùng kh
 
 ```text
 C# .NET 8
-WinForms
+WinUI 3 / Windows App SDK
 FFmpeg bundled theo app/package
 PDF writer nội bộ hoặc service tự viết bằng C#
 ```
@@ -52,11 +52,10 @@ PDF writer nội bộ hoặc service tự viết bằng C#
 Lý do:
 
 - Tối ưu cho Windows.
-- Đóng gói `.exe` dễ hơn Python.
 - Gọi FFmpeg ổn định.
 - User cuối không cần tự cài FFmpeg hoặc cấu hình path.
-- UI WinForms đủ tốt cho tool nội bộ.
-- Không cần WinUI 3 ở MVP.
+- WinUI 3 cho native Fluent controls, `ThemeResource`, `NavigationView`, `InfoBar`, `ListView` và layout hợp với app suite nhiều module.
+- Quyết định hiện tại: nếu đã chọn làm WinUI ngay thì các plan UI/kỹ thuật phải bám theo `06_WINUI_UI_DIRECTION.md` và `07_CORE_TECHNICAL_DIRECTION.md`, không quay lại mental model WinForms MVP tối giản.
 
 ## 6. Cấu trúc tài liệu triển khai
 
@@ -68,6 +67,9 @@ ImagePdfOptimizerAppPlan
 ├── 03_TECHNICAL_ARCHITECTURE.md
 ├── 04_IMPLEMENTATION_PHASES.md
 ├── 05_MVP_ACCEPTANCE_CHECKLIST.md
+├── 06_WINUI_UI_DIRECTION.md
+├── 07_CORE_TECHNICAL_DIRECTION.md
+├── 08_WINUI_IMPLEMENTATION_HANDOFF.md
 ├── FE_UI_PLAN_IMAGE_PDF_OPTIMIZER_APP.md
 └── PLAN_IMAGE_PDF_OPTIMIZER_APP.md
 ```
@@ -107,7 +109,7 @@ Chưa cần ở MVP:
 3. Image scan và output folder structure.
 4. Convert AVIF.
 5. PDF combine engine.
-6. WinForms shell layout.
+6. WinUI shell layout bằng `NavigationView` + feature host + shared resources.
 7. File list, preview, settings panel.
 8. Progress/state/warning/error.
 9. PDF versions và final selection.

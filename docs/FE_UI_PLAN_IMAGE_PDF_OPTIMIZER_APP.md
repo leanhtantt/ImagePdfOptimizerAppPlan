@@ -19,7 +19,7 @@ Các điểm FE cần làm rõ thêm khi triển khai:
 
 Giả định thiết kế:
 
-- MVP dùng WinForms trên Windows.
+- MVP hiện đi theo WinUI 3 / Windows App SDK trên Windows; nếu còn ví dụ WinForms thì chỉ là di sản plan cũ và không được dùng làm hướng implement chính.
 - Chỉ có một nhóm người dùng chính, không có phân quyền.
 - Không cần responsive kiểu web/mobile, nhưng phải dùng tốt trên màn hình tối thiểu `1366x768`.
 - Giao diện dùng tiếng Việt có dấu.
@@ -124,7 +124,7 @@ Nguyên tắc dùng màu:
 
 ### Typography
 
-WinForms có thể dùng font mặc định hệ thống, ưu tiên:
+WinUI nên dùng `ThemeResource`/text style của Fluent và font hệ thống, ưu tiên:
 
 - Font: `Segoe UI`.
 - Tiêu đề header: `16-18px`, semibold.
@@ -340,7 +340,7 @@ App desktop có thể không có backend, nhưng frontend vẫn cần contract r
 }
 ```
 
-## 8. Cấu trúc form WinForms đề xuất
+## 8. Cấu trúc màn hình WinUI đề xuất
 
 ```text
 MainForm

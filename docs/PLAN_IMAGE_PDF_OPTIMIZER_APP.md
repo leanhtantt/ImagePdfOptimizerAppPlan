@@ -59,22 +59,20 @@ Nhân sự văn phòng, tư vấn hồ sơ, editor, admin hoặc người xử l
 Sử dụng:
 
 ```text
-C# .NET 8 + WinForms + FFmpeg
+C# .NET 8 + WinUI 3 / Windows App SDK + FFmpeg
 ```
 
 ### Lý do chọn
 
-- WinForms chạy native tốt trên Windows.
-- Làm giao diện nhanh, đủ dùng cho tool nội bộ.
-- Gọi FFmpeg bằng `Process` đơn giản và ổn định.
-- Đóng gói thành `.exe` dễ hơn Python.
-- Ít rủi ro antivirus hơn app Python đóng gói bằng PyInstaller.
-- Dễ phát triển thêm installer sau này.
+- WinUI 3 / Windows App SDK cho giao diện Fluent native hơn và phù hợp app suite nhiều module.
+- Dùng native controls như `NavigationView`, `ListView`, `InfoBar`, `ContentDialog`, `ProgressBar` thay vì tự vẽ lại control phổ thông.
+- Gọi FFmpeg bằng `Process` đơn giản và ổn định, nhưng command/process logic phải nằm trong infrastructure/service, không nằm trong XAML code-behind.
+- Đóng gói app Windows tốt hơn Python và vẫn có thể phát triển installer sau này.
+- Core/shared/infrastructure phải tách khỏi UI để tránh vỏ WinUI nhưng ruột workflow rời rạc.
 
 ### Không ưu tiên ở MVP
 
 - Python desktop app: đóng gói nặng, UI kém native hơn.
-- WinUI 3: đẹp hơn nhưng phức tạp hơn, chưa cần cho MVP.
 - Web app: không tối ưu cho xử lý file local hàng loạt trên Windows.
 
 ## 5. Quy trình xử lý bắt buộc
@@ -827,4 +825,4 @@ Giữ nguyên hay giảm resolution?
 PDF đã đạt dung lượng mong muốn chưa?
 ```
 
-Đây là hướng sản phẩm phù hợp để build MVP nhanh bằng `.NET 8 WinForms + FFmpeg`, sau đó nâng cấp dần thành tool đóng gói hoàn chỉnh cho Windows.
+Đây là hướng sản phẩm phù hợp để build bằng `.NET 8 + WinUI 3 / Windows App SDK + FFmpeg`, với điều kiện UI WinUI và core workflow được thiết kế đồng bộ để tránh tình trạng vỏ Fluent nhưng ruột vẫn là form/tool rời rạc.
