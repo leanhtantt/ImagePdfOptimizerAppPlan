@@ -15,8 +15,8 @@
         </Grid.RowDefinitions>
 
         <!-- 1. Toolbar Area -->
-        <CommandBar Grid.Row="0" DefaultLabelPosition="Right">
-            <AppBarButton Icon="Add" Label="Thêm File Lẻ" Command="{x:Bind ViewModel.AddFilesCommand}"/>
+        <CommandBar Grid.Row="0" DefaultLabelPosition="Right" HorizontalAlignment="Left">
+            <AppBarButton Icon="Add" Label="Thêm File" Command="{x:Bind ViewModel.AddFilesCommand}"/>
             <AppBarButton Icon="Folder" Label="Import Folder" Command="{x:Bind ViewModel.ChooseFolderCommand}"/>
             <AppBarSeparator/>
             <AppBarButton Icon="Delete" Label="Xóa Đã Chọn" Command="{x:Bind ViewModel.RemoveSelectedCommand}" CommandParameter="{Binding SelectedItems, ElementName=FileList}"/>
@@ -92,7 +92,7 @@
                 <Border Grid.Row="1" Margin="24" Padding="24" CornerRadius="8" BorderThickness="1" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" HorizontalAlignment="Stretch" VerticalAlignment="Top" Visibility="{x:Bind ViewModel.HasImages, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}, ConverterParameter=Invert}">
                     <StackPanel Spacing="8">
                         <TextBlock Text="Chưa có file trong danh sách" Style="{ThemeResource SubtitleTextBlockStyle}" />
-                        <TextBlock Text="Thêm file lẻ hoặc import folder để xem tiến trình nén, dung lượng trước/sau và phần trăm tiết kiệm ngay trên từng dòng." Style="{ThemeResource BodyTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                        <TextBlock Text="Thêm file hoặc import folder để xem tiến trình nén, dung lượng trước/sau và phần trăm tiết kiệm ngay trên từng dòng." Style="{ThemeResource BodyTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
                     </StackPanel>
                 </Border>
             </Grid>
