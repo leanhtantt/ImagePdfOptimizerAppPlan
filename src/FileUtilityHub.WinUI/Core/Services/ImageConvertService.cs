@@ -29,6 +29,10 @@ public class ImageConvertService
 
         var args = $"-y -i \"{item.SourcePath}\" -frames:v 1 {vfScale}-c:v libaom-av1 -crf {config.AvifCrf} -cpu-used {config.AvifCpuUsed} -pix_fmt yuv420p \"{outFile}\"";
 
+        item.AvifCrfUsed = config.AvifCrf;
+        item.MaxLongEdgeUsed = config.MaxLongEdge;
+        item.Warning = null;
+        item.ErrorMessage = null;
         item.Status = ProcessingStatus.Processing;
         var success = await _runner.RunCommandAsync(args);
         
@@ -39,7 +43,7 @@ public class ImageConvertService
             if (config.SkipIfOutputLarger && item.OutputSizeBytes > item.OriginalSizeBytes)
             {
                 item.Status = ProcessingStatus.Warning;
-                item.Warning = "Output larger than original";
+                item.Warning = "Output AVIF nặng hơn file gốc, cần xem lại CRF hoặc giữ file gốc.";
             }
             else
             {
@@ -49,7 +53,7 @@ public class ImageConvertService
         }
 
         item.Status = ProcessingStatus.Error;
-        item.ErrorMessage = "Conversion failed";
+        item.ErrorMessage = "Nén AVIF thất bại. Kiểm tra FFmpeg, file input hoặc quyền ghi thư mục output.";
         return false;
     }
 }

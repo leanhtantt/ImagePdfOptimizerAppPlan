@@ -3,14 +3,16 @@
     x:Class="FileUtilityHub_WinUI.App"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:converters="using:FileUtilityHub_WinUI.Converters"
     xmlns:local="using:FileUtilityHub_WinUI">
     <Application.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
                 <XamlControlsResources xmlns="using:Microsoft.UI.Xaml.Controls" />
-                <!-- Other merged dictionaries here -->
+                <ResourceDictionary Source="ms-appx:///Resources/SemanticBrushes.xaml" />
             </ResourceDictionary.MergedDictionaries>
-            <!-- Other app resources here -->
+            <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter" />
+            <converters:ProcessingStatusBrushConverter x:Key="ProcessingStatusBrushConverter" />
         </ResourceDictionary>
     </Application.Resources>
 </Application>

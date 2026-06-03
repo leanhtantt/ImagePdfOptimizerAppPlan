@@ -124,22 +124,25 @@ Nguyên tắc dùng màu:
 
 ### Typography
 
+<<<<<<< ours
+WinUI nên ưu tiên sử dụng `ThemeResource` / text style của hệ thống, không tự set kích thước font thủ công bằng px:
+=======
 WinUI nên dùng `ThemeResource`/text style của Fluent và font hệ thống, ưu tiên:
+>>>>>>> theirs
 
-- Font: `Segoe UI`.
-- Tiêu đề header: `16-18px`, semibold.
-- Section title: `13-14px`, semibold.
-- Body/input/table: `12-13px`.
-- Helper text: `11-12px`.
+- Tiêu đề header: `TitleTextBlockStyle` hoặc `SubtitleTextBlockStyle`.
+- Section title: `BodyStrongTextBlockStyle`.
+- Body/input/table: `BodyTextBlockStyle`.
+- Helper text: `CaptionTextBlockStyle`.
 
-Không dùng chữ quá lớn. Đây là tool xử lý hồ sơ, cần mật độ thông tin vừa phải.
+Không thiết lập font size cứng. Để hệ thống Windows tự xử lý mật độ hiển thị theo cài đặt của người dùng.
 
 ### Button
 
-- Primary: nền `#8B1E2D`, chữ trắng, dùng cho `Nén AVIF`, `Tạo PDF`, `Đặt làm bản final`.
-- Secondary: nền trắng, viền xám, dùng cho `Tạo lại`, `Mở folder`, `Xem log`.
-- Warning action: dùng amber nhẹ hoặc text warning, không dùng nếu không cần.
-- Button disabled phải có tooltip hoặc helper text giải thích lý do.
+- Primary: Dùng style `AccentButtonStyle` (có override màu nền primary đỏ `#8B1E2D` trong resource dictionary) cho `Nén AVIF`, `Tạo PDF`, `Đặt làm bản final`.
+- Secondary: Dùng button mặc định của WinUI (Standard Button) cho `Tạo lại`, `Mở folder`, `Xem log`.
+- Warning action: Tránh custom button warning riêng rẽ, nên đặt action trong một `InfoBar`.
+- Button disabled phải có tooltip giải thích lý do để tuân thủ accessibility.
 
 ### Trang trí
 
@@ -155,12 +158,13 @@ Chỉ dùng trang trí chức năng:
 
 ### Layout components
 
-- `MainForm`: form chính của app.
-- `AppHeader`: header đỏ đậm, folder hiện tại, action nhanh.
-- `WorkflowSidebar`: stepper trạng thái.
-- `WorkspacePanel`: vùng giữa chứa preview và danh sách.
-- `SettingsPanel`: panel phải có scroll.
-- `StatusBar`: tiến trình ngắn, số file, trạng thái job hiện tại.
+- `MainWindow`: Cửa sổ gốc của app, chứa shell.
+- `AppShellPage`: Chứa `NavigationView` cho hệ thống đa module.
+- `ImagePdfOptimizerPage`: Feature host chính cho module 01.
+- `AppHeader` (CommandBar hoặc Grid custom): Hành động nhanh, trạng thái tool.
+- `WorkspaceGrid`: Cột/vùng chứa nội dung chính (preview, list).
+- `SettingsScrollViewer`: Vùng thiết lập bên phải, bắt buộc cuộn.
+- `JobProgressInfoBar`: Tiến trình công việc.
 
 ### Input/file components
 
@@ -192,11 +196,11 @@ Chỉ dùng trang trí chức năng:
 
 ### Feedback components
 
-- `ProgressPanel`: progress bar, file hiện tại, số lượng đã xử lý.
-- `ToastMessage`: thông báo ngắn sau thao tác.
-- `WarningBox`: cảnh báo có hướng xử lý.
-- `ErrorBox`: lỗi có nút retry/copy log.
-- `LogDialog`: xem log chi tiết.
+- `JobProgressPanel`: Dùng `ProgressBar` và text hiển thị tiến độ.
+- `ToastNotification`: Thông báo đẩy (toast) hoặc `InfoBar` nhẹ gọn.
+- `WarningInfoBar`: Dùng `InfoBar` với `Severity="Warning"`.
+- `ErrorDialog`: Dùng `ContentDialog` để hiển thị lỗi chi tiết có nút xem log.
+- `LogCenterDialog`: Dùng `ContentDialog` hoặc một Page riêng mở đè lên.
 
 ## 6. State và hành vi UI
 
@@ -340,31 +344,42 @@ App desktop có thể không có backend, nhưng frontend vẫn cần contract r
 }
 ```
 
+<<<<<<< ours
+## 8. Cấu trúc XAML WinUI đề xuất
+=======
 ## 8. Cấu trúc màn hình WinUI đề xuất
+>>>>>>> theirs
 
 ```text
-MainForm
-├── HeaderPanel
-│   ├── AppTitleLabel
-│   ├── CurrentFolderLabel
-│   ├── ChooseFolderButton
-│   └── OpenOutputButton
-├── BodySplitContainer
-│   ├── WorkflowPanel
-│   └── MainSplitContainer
-│       ├── WorkspacePanel
-│       │   ├── DropZonePanel
-│       │   ├── PreviewPanel
-│       │   └── FileTable
-│       └── SettingsScrollPanel
-│           ├── AvifSettingsGroup
-│           ├── PdfSettingsGroup
-│           ├── PdfVersionsGroup
-│           └── LogSummaryGroup
-└── StatusBarPanel
+Window (MainWindow)
+└── ShellPage (Page)
+    └── NavigationView
+        ├── NavigationViewItem (Module Image PDF)
+        ├── NavigationViewItem (Module khác...)
+        └── Frame (Feature Host)
+            └── ImagePdfOptimizerPage (Page)
+                └── Grid (Root)
+                    ├── Row 0: CommandBar (Header, Actions)
+                    ├── Row 1: SplitView hoặc Grid chia cột
+                    │   ├── Cột trái (Workspace)
+                    │   │   ├── DropZoneControl
+                    │   │   ├── ImagePreviewControl
+                    │   │   └── ListView (FileTable với DataTemplate)
+                    │   └── Cột phải (Settings)
+                    │       └── ScrollViewer
+                    │           └── StackPanel
+                    │               ├── AvifSettingsControl
+                    │               ├── PdfSettingsControl
+                    │               └── PdfVersionListControl
+                    └── Row 2: InfoBar (Warnings/Progress)
 ```
 
-Ưu tiên dùng `SplitContainer`, `TableLayoutPanel`, `FlowLayoutPanel`, `Panel AutoScroll` để layout co giãn ổn định.
+**Nguyên tắc layout XAML:**
+- Không dùng các khái niệm của WinForms (như `TableLayoutPanel`, `Panel AutoScroll`, `SplitContainer`).
+- Dùng `Grid` cho layout tổng có phân chia dòng, cột cố định hoặc co giãn (*).
+- Dùng `StackPanel` cho layout dọc/ngang không quan tâm chia lưới.
+- Bao quanh nội dung dài (như Settings) bằng `ScrollViewer`.
+- Custom `ListView.ItemTemplate` để dựng các DataTemplate tái sử dụng cho từng file row/PDF version.
 
 ## 9. Checklist kiểm tra UI
 
@@ -401,3 +416,12 @@ MainForm
 8. Polish màu sắc, spacing, disabled state và log dialog.
 
 Không làm target size auto optimize, WebP/Both, preview trước/sau, batch nhiều folder hoặc drag reorder nâng cao trong MVP đầu tiên.
+
+## 11. Kiến trúc MVVM & WinUI
+
+Mọi trạng thái hiển thị của UI phải được Bind từ **ViewModel**. 
+- View (`.xaml`) chỉ làm việc binding dữ liệu và định nghĩa layout.
+- Code-behind (`.xaml.cs`) tuyệt đối **không** được chứa business logic (ví dụ: quét file, gọi FFmpeg, tạo file Output). Chỉ dùng để nối các event UI đặc thù như Drag & Drop mà Binding không hỗ trợ tự nhiên.
+- Các button sẽ Bind tới các `ICommand` (như `ConvertAvifCommand`) trên ViewModel.
+
+Điều này đảm bảo cho UI Shell đẹp mà phần lõi nghiệp vụ vẫn độc lập đúng chuẩn kiến trúc của file `07_CORE_TECHNICAL_DIRECTION.md`.

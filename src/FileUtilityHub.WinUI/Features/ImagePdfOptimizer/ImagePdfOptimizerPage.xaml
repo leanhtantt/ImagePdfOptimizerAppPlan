@@ -4,7 +4,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-    xmlns:controls="using:CommunityToolkit.WinUI.UI.Controls"
+    xmlns:models="using:FileUtilityHub.Core.Models"
     mc:Ignorable="d">
 
     <Grid>
@@ -16,15 +16,13 @@
 
         <!-- 1. Toolbar Area -->
         <CommandBar Grid.Row="0" DefaultLabelPosition="Right">
-            <AppBarButton Icon="Add" Label="Thêm File Lẻ" Click="BtnAddFiles_Click"/>
-            <AppBarButton Icon="Folder" Label="Import Folder" Click="BtnChooseFolder_Click"/>
+            <AppBarButton Icon="Add" Label="Thêm File Lẻ" Command="{x:Bind ViewModel.AddFilesCommand}"/>
+            <AppBarButton Icon="Folder" Label="Import Folder" Command="{x:Bind ViewModel.ChooseFolderCommand}"/>
             <AppBarSeparator/>
-            <AppBarButton Icon="Delete" Label="Xóa Đã Chọn" Click="BtnRemoveSelected_Click"/>
-            <AppBarButton Icon="Clear" Label="Xóa Tất Cả" Click="BtnClearAll_Click"/>
+            <AppBarButton Icon="Delete" Label="Xóa Đã Chọn" Command="{x:Bind ViewModel.RemoveSelectedCommand}" CommandParameter="{Binding SelectedItems, ElementName=FileList}"/>
+            <AppBarButton Icon="Clear" Label="Xóa Tất Cả" Command="{x:Bind ViewModel.ClearAllCommand}"/>
             <AppBarSeparator/>
-            <AppBarButton Icon="OpenLocal" Label="Mở Thư Mục Đích" Click="BtnOpenOutput_Click"/>
-            <AppBarSeparator/>
-            <AppBarButton Icon="Play" Label="Bắt đầu nén" Click="BtnConvertAvif_Click" x:Name="BtnConvertAvif"/>
+            <AppBarButton Icon="OpenLocal" Label="Mở Thư Mục Đích" Command="{x:Bind ViewModel.OpenOutputCommand}"/>
         </CommandBar>
 
         <!-- 2. Workspace Area -->
@@ -34,53 +32,122 @@
                 <ColumnDefinition Width="350" />
             </Grid.ColumnDefinitions>
 
-            <!-- File List (Queue) using DataGrid -->
-            <Border Grid.Column="0" BorderBrush="{ThemeResource SurfaceStrokeColorDefaultBrush}" BorderThickness="0,1,1,1">
-                <controls:DataGrid x:Name="FileList" AutoGenerateColumns="False" ItemsSource="{x:Bind _imageItems}" CanUserSortColumns="True">
-                    <controls:DataGrid.Columns>
-                        <controls:DataGridTextColumn Header="Tên file" Binding="{Binding FileName}" Width="250"/>
-                        <controls:DataGridTextColumn Header="Định dạng" Binding="{Binding Format}" Width="80"/>
-                        <controls:DataGridTextColumn Header="Dung lượng" Binding="{Binding FormattedOriginalSize}" Width="100"/>
-                        <controls:DataGridTextColumn Header="Size đầu ra" Binding="{Binding FormattedOutputSize}" Width="100"/>
-                        <controls:DataGridTextColumn Header="Trạng thái" Binding="{Binding Status}" Width="120"/>
-                    </controls:DataGrid.Columns>
-                </controls:DataGrid>
-            </Border>
+            <!-- File List using ListView -->
+            <Grid Grid.Column="0" BorderBrush="{ThemeResource SurfaceStrokeColorDefaultBrush}" BorderThickness="0,1,1,1" Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+                
+                <Grid Grid.Row="0" Padding="12,10,32,10" BorderBrush="{ThemeResource SurfaceStrokeColorDefaultBrush}" BorderThickness="0,0,0,1" Background="{ThemeResource LayerFillColorDefaultBrush}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="180" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="150" />
+                        <ColumnDefinition Width="120" />
+                        <ColumnDefinition Width="116" />
+                    </Grid.ColumnDefinitions>
+                    
+                    <TextBlock Grid.Column="0" Text="File" Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    <TextBlock Grid.Column="1" Text="Đường dẫn" Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Margin="16,0,0,0" />
+                    <TextBlock Grid.Column="2" Text="Dung lượng" Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Margin="16,0,0,0" />
+                    <TextBlock Grid.Column="3" Text="Chênh lệch" Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Margin="16,0,0,0" />
+                    <TextBlock Grid.Column="4" Text="Trạng thái" Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" HorizontalAlignment="Center" />
+                </Grid>
+
+                <ListView x:Name="FileList" Grid.Row="1" ItemsSource="{x:Bind ViewModel.ImageItems, Mode=OneWay}" SelectionMode="Extended">
+                    <ListView.ItemContainerStyle>
+                        <Style TargetType="ListViewItem">
+                            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                            <Setter Property="MinHeight" Value="44" />
+                            <Setter Property="Margin" Value="0" />
+                        </Style>
+                    </ListView.ItemContainerStyle>
+                    <ListView.ItemTemplate>
+                        <DataTemplate x:DataType="models:ImageItem">
+                            <Grid Padding="12,8" ColumnSpacing="0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="180" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="150" />
+                                    <ColumnDefinition Width="120" />
+                                    <ColumnDefinition Width="116" />
+                                </Grid.ColumnDefinitions>
+
+                                <TextBlock Grid.Column="0" Text="{x:Bind FileName}" Style="{ThemeResource BodyStrongTextBlockStyle}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                                <TextBlock Grid.Column="1" Text="{x:Bind SourcePath}" Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" Margin="16,0,0,0" />
+                                <TextBlock Grid.Column="2" Text="{x:Bind SizeComparison}" Style="{ThemeResource BodyTextBlockStyle}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" Margin="16,0,0,0" />
+                                <TextBlock Grid.Column="3" Text="{x:Bind SavingsSummary}" Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" Margin="16,0,0,0" />
+
+                                <StackPanel Grid.Column="4" Spacing="6" VerticalAlignment="Center" HorizontalAlignment="Stretch">
+                                    <Border Background="{Binding Status, Converter={StaticResource ProcessingStatusBrushConverter}}" CornerRadius="12" Padding="8,4" HorizontalAlignment="Stretch">
+                                        <TextBlock Text="{x:Bind StatusDisplay}" Style="{ThemeResource CaptionTextBlockStyle}" HorizontalAlignment="Center" Foreground="{ThemeResource FileStatusBadgeTextBrush}" TextTrimming="CharacterEllipsis" />
+                                    </Border>
+                                    <ProgressBar IsIndeterminate="{x:Bind IsProcessing, Mode=OneWay}" Visibility="{Binding IsProcessing, Converter={StaticResource BoolToVisibilityConverter}}" />
+                                </StackPanel>
+                            </Grid>
+                        </DataTemplate>
+                    </ListView.ItemTemplate>
+                </ListView>
+
+                <Border Grid.Row="1" Margin="24" Padding="24" CornerRadius="8" BorderThickness="1" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" HorizontalAlignment="Stretch" VerticalAlignment="Top" Visibility="{x:Bind ViewModel.HasImages, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}, ConverterParameter=Invert}">
+                    <StackPanel Spacing="8">
+                        <TextBlock Text="Chưa có file trong danh sách" Style="{ThemeResource SubtitleTextBlockStyle}" />
+                        <TextBlock Text="Thêm file lẻ hoặc import folder để xem tiến trình nén, dung lượng trước/sau và phần trăm tiết kiệm ngay trên từng dòng." Style="{ThemeResource BodyTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                    </StackPanel>
+                </Border>
+            </Grid>
 
             <!-- Settings Panel -->
             <Border Grid.Column="1" Background="{ThemeResource LayerFillColorDefaultBrush}" BorderBrush="{ThemeResource SurfaceStrokeColorDefaultBrush}" BorderThickness="0,1,0,1">
                 <ScrollViewer Padding="20">
-                    <StackPanel Spacing="16">
-                        <TextBlock Text="Encoding Settings" FontWeight="SemiBold" FontSize="16"/>
-                        <StackPanel Spacing="8">
-                            <TextBlock Text="Chất lượng (CRF):" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
-                            <Slider x:Name="SliderCrf" Minimum="0" Maximum="40" Value="24" StepFrequency="2"/>
+                    <StackPanel Spacing="24">
+                        <!-- Header -->
+                        <StackPanel Spacing="4">
+                            <TextBlock Text="Thiết lập nén ảnh" Style="{ThemeResource TitleTextBlockStyle}"/>
+                            <TextBlock Text="Cấu hình mức độ nén và kích thước đầu ra cho file AVIF." Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap"/>
                         </StackPanel>
                         
-                        <StackPanel Spacing="8">
-                            <TextBlock Text="Độ phân giải tối đa:" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
-                            <ComboBox x:Name="ComboResolution" SelectedIndex="0" HorizontalAlignment="Stretch">
-                                <ComboBoxItem Content="Giữ nguyên gốc" Tag="0"/>
-                                <ComboBoxItem Content="1920 px (FHD)" Tag="1920"/>
-                                <ComboBoxItem Content="2048 px (2K)" Tag="2048"/>
-                                <ComboBoxItem Content="2560 px (QHD)" Tag="2560"/>
-                            </ComboBox>
-                        </StackPanel>
+                        <!-- Card 1 -->
+                        <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="16">
+                            <StackPanel Spacing="8">
+                                <TextBlock Text="Chất lượng ảnh (CRF)" Style="{ThemeResource BodyStrongTextBlockStyle}"/>
+                                <TextBlock Text="Giá trị thấp hơn cho chất lượng cao hơn." Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap"/>
+                                <Slider Minimum="0" Maximum="40" Value="{x:Bind ViewModel.AvifCrf, Mode=TwoWay}" StepFrequency="2"/>
+                            </StackPanel>
+                        </Border>
+                        
+                        <!-- Card 2 -->
+                        <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="16">
+                            <StackPanel Spacing="8">
+                                <TextBlock Text="Độ phân giải tối đa" Style="{ThemeResource BodyStrongTextBlockStyle}"/>
+                                <TextBlock Text="Giảm kích thước cạnh dài nhất nếu ảnh quá lớn." Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap"/>
+                                <ComboBox SelectedIndex="{x:Bind ViewModel.ResolutionIndex, Mode=TwoWay}" HorizontalAlignment="Stretch">
+                                    <ComboBoxItem Content="Giữ nguyên gốc" />
+                                    <ComboBoxItem Content="1920 px (FHD)" />
+                                    <ComboBoxItem Content="2048 px (2K)" />
+                                    <ComboBoxItem Content="2560 px (QHD)" />
+                                </ComboBox>
+                            </StackPanel>
+                        </Border>
+                        
+                        <!-- Main Action -->
+                        <Button Style="{ThemeResource AccentButtonStyle}" HorizontalAlignment="Stretch" Padding="12" Margin="0,12,0,0" Command="{x:Bind ViewModel.ConvertAvifCommand}">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <FontIcon Glyph="&#xE768;"/>
+                                <TextBlock Text="Bắt đầu nén AVIF" />
+                            </StackPanel>
+                        </Button>
                     </StackPanel>
                 </ScrollViewer>
             </Border>
         </Grid>
 
         <!-- 3. Status Bar (Bottom) -->
-        <Border Grid.Row="2" Background="{ThemeResource SystemControlBackgroundChromeMediumLowBrush}" BorderBrush="{ThemeResource SurfaceStrokeColorDefaultBrush}" BorderThickness="0,1,0,0" Padding="12,6">
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="200" />
-                </Grid.ColumnDefinitions>
-                <TextBlock x:Name="TxtStatusMessage" Text="Sẵn sàng." VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
-                <ProgressBar x:Name="ProgressAvif" Grid.Column="1" Minimum="0" Maximum="100" Value="0" Visibility="Collapsed" VerticalAlignment="Center" Margin="10,0,0,0"/>
-            </Grid>
-        </Border>
+        <InfoBar Grid.Row="2" IsOpen="True" Severity="Informational" Message="{x:Bind ViewModel.StatusMessage, Mode=OneWay}" IsClosable="False">
+            <InfoBar.Content>
+                <ProgressBar Minimum="0" Maximum="{x:Bind ViewModel.ProgressMaximum, Mode=OneWay}" Value="{x:Bind ViewModel.ProgressValue, Mode=OneWay}" Visibility="{x:Bind ViewModel.IsConverting, Mode=OneWay}" Width="200" VerticalAlignment="Center" Margin="0,10,0,10"/>
+            </InfoBar.Content>
+        </InfoBar>
     </Grid>
 </Page>
