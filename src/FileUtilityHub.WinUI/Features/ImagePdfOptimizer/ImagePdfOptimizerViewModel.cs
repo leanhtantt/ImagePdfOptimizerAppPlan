@@ -2,6 +2,7 @@ using System;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -15,18 +16,11 @@ public partial class ImagePdfOptimizerViewModel : ObservableObject
 {
     private readonly FileScanService _scanService;
     private readonly ImageConvertService _convertService;
+    private readonly AppStatusService _statusService;
+    private CancellationTokenSource? _cancellationTokenSource;
 
     [ObservableProperty]
     private string _currentFolder = string.Empty;
-
-    [ObservableProperty]
-    private string _statusMessage = "Sẵn sàng.";
-
-    [ObservableProperty]
-    private int _progressMaximum = 100;
-
-    [ObservableProperty]
-    private int _progressValue = 0;
 
     [ObservableProperty]
     private bool _isConverting = false;
@@ -42,10 +36,11 @@ public partial class ImagePdfOptimizerViewModel : ObservableObject
 
     public ObservableCollection<ImageItem> ImageItems { get; } = new();
 
-    public ImagePdfOptimizerViewModel(FileScanService scanService, ImageConvertService convertService)
+    public ImagePdfOptimizerViewModel(FileScanService scanService, ImageConvertService convertService, AppStatusService statusService)
     {
         _scanService = scanService;
         _convertService = convertService;
+        _statusService = statusService;
     }
 
     [RelayCommand]
@@ -135,14 +130,27 @@ public partial class ImagePdfOptimizerViewModel : ObservableObject
         }
     }
 
+    [RelayCommand(CanExecute = nameof(CanCancel))]
+    private void CancelConversion()
+    {
+        _cancellationTokenSource?.Cancel();
+    }
+
+    private bool CanCancel() => IsConverting;
+
     [RelayCommand(CanExecute = nameof(CanConvertAvif))]
     private async Task ConvertAvifAsync()
     {
         if (ImageItems.Count == 0) return;
 
         IsConverting = true;
-        ProgressMaximum = ImageItems.Count;
-        ProgressValue = 0;
+        ConvertAvifCommand.NotifyCanExecuteChanged();
+        CancelConversionCommand.NotifyCanExecuteChanged();
+
+        _cancellationTokenSource = new CancellationTokenSource();
+        var token = _cancellationTokenSource.Token;
+
+        _statusService.StartProcessing("Chuẩn bị nén...", ImageItems.Count);
 
         int res = 0;
         switch (ResolutionIndex)
@@ -164,19 +172,43 @@ public partial class ImagePdfOptimizerViewModel : ObservableObject
             CurrentFolder = Path.GetDirectoryName(ImageItems.First().SourcePath) ?? string.Empty;
         }
 
+        // Reset state for multiple runs
+        foreach (var item in ImageItems)
+        {
+            if (item.Status == ProcessingStatus.Processing) continue; // safety check
+            item.Status = ProcessingStatus.Pending;
+            item.OutputSizeBytes = null;
+            item.OutputPath = null;
+            item.ErrorMessage = null;
+            item.Warning = null;
+        }
+
         for (int i = 0; i < ImageItems.Count; i++)
         {
+            if (token.IsCancellationRequested)
+            {
+                _statusService.StopProcessing("Đã dừng nén.");
+                break;
+            }
+
             var item = ImageItems[i];
-            StatusMessage = $"Đang nén {i + 1}/{ImageItems.Count}: {item.FileName}";
+            item.Status = ProcessingStatus.Processing;
+            
+            _statusService.ReportProgress(i, ImageItems.Count, $"Đang nén: {item.FileName}");
             
             await _convertService.ConvertToAvifAsync(item, config, CurrentFolder);
             
-            ProgressValue = i + 1;
+            _statusService.ReportProgress(i + 1, ImageItems.Count, $"Đang nén: {item.FileName}");
         }
 
-        StatusMessage = "Đã hoàn tất nén AVIF toàn bộ ảnh trong danh sách!";
+        if (!token.IsCancellationRequested)
+        {
+            _statusService.StopProcessing("Đã hoàn tất nén AVIF toàn bộ ảnh trong danh sách!");
+        }
+
         IsConverting = false;
         ConvertAvifCommand.NotifyCanExecuteChanged();
+        CancelConversionCommand.NotifyCanExecuteChanged();
     }
 
     private bool CanConvertAvif() => !IsConverting && ImageItems.Count > 0;
@@ -184,12 +216,14 @@ public partial class ImagePdfOptimizerViewModel : ObservableObject
     private void UpdateStatus()
     {
         HasImages = ImageItems.Count > 0;
-        StatusMessage = $"Đã tải {ImageItems.Count} ảnh vào danh sách chờ.";
+        _statusService.CurrentItemCount = ImageItems.Count;
+        _statusService.StatusMessage = $"Đã tải {ImageItems.Count} ảnh vào danh sách chờ.";
         ConvertAvifCommand.NotifyCanExecuteChanged();
     }
 
     partial void OnIsConvertingChanged(bool value)
     {
         ConvertAvifCommand.NotifyCanExecuteChanged();
+        CancelConversionCommand.NotifyCanExecuteChanged();
     }
 }

@@ -58,6 +58,7 @@ public partial class App : Application
         services.AddSingleton<OutputManager>();
 
         // Core Services
+        services.AddSingleton<AppStatusService>();
         services.AddSingleton<FileScanService>();
         services.AddSingleton<ImageConvertService>();
 

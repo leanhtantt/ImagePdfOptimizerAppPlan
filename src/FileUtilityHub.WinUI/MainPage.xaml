@@ -15,7 +15,12 @@
         the Frame in MainWindow (RootFrame).
     -->
     <Grid>
-        <NavigationView x:Name="NavView" SelectionChanged="NavView_SelectionChanged" IsBackButtonVisible="Collapsed">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <NavigationView Grid.Row="0" x:Name="NavView" SelectionChanged="NavView_SelectionChanged" IsBackButtonVisible="Collapsed">
             <NavigationView.MenuItems>
                 <NavigationViewItem Icon="Pictures" Content="Image PDF Optimizer" Tag="ImagePdfOptimizer" />
                 <NavigationViewItem Icon="Document" Content="PDF Compressor" Tag="PdfCompressor" />
@@ -23,5 +28,27 @@
             </NavigationView.MenuItems>
             <Frame x:Name="ContentFrame" />
         </NavigationView>
+
+        <!-- Global Status Bar -->
+        <Border Grid.Row="1" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}" BorderThickness="0,1,0,0" Padding="16,8">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                
+                <!-- Left: Status Message -->
+                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="16" VerticalAlignment="Center">
+                    <TextBlock Text="{x:Bind StatusService.ItemCountText, Mode=OneWay}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Style="{ThemeResource CaptionTextBlockStyle}" VerticalAlignment="Center" />
+                    <TextBlock Text="{x:Bind StatusService.StatusMessage, Mode=OneWay}" Style="{ThemeResource BodyTextBlockStyle}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                </StackPanel>
+                
+                <!-- Right: Progress Bar & Percentage -->
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="12" Visibility="{x:Bind StatusService.IsProcessing, Mode=OneWay}">
+                    <ProgressBar Minimum="0" Maximum="{x:Bind StatusService.ProgressMaximum, Mode=OneWay}" Value="{x:Bind StatusService.ProgressValue, Mode=OneWay}" Width="200" VerticalAlignment="Center" />
+                    <TextBlock Text="{x:Bind StatusService.ProgressPercentageText, Mode=OneWay}" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Width="45" TextAlignment="Right" />
+                </StackPanel>
+            </Grid>
+        </Border>
     </Grid>
 </Page>

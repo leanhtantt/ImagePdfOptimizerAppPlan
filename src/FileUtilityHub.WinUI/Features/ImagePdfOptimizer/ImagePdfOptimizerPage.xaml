@@ -76,14 +76,13 @@
 
                                 <TextBlock Grid.Column="0" Text="{x:Bind FileName}" Style="{ThemeResource BodyStrongTextBlockStyle}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
                                 <TextBlock Grid.Column="1" Text="{x:Bind SourcePath}" Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" Margin="16,0,0,0" />
-                                <TextBlock Grid.Column="2" Text="{x:Bind SizeComparison}" Style="{ThemeResource BodyTextBlockStyle}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" Margin="16,0,0,0" />
-                                <TextBlock Grid.Column="3" Text="{x:Bind SavingsSummary}" Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" Margin="16,0,0,0" />
+                                <TextBlock Grid.Column="2" Text="{x:Bind FormattedOriginalSize, Mode=OneWay}" Style="{ThemeResource BodyTextBlockStyle}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" Margin="16,0,0,0" />
+                                <TextBlock Grid.Column="3" Text="{x:Bind SavingsSummary, Mode=OneWay}" Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" Margin="16,0,0,0" />
 
                                 <StackPanel Grid.Column="4" Spacing="6" VerticalAlignment="Center" HorizontalAlignment="Stretch">
                                     <Border Background="{Binding Status, Converter={StaticResource ProcessingStatusBrushConverter}}" CornerRadius="12" Padding="8,4" HorizontalAlignment="Stretch">
-                                        <TextBlock Text="{x:Bind StatusDisplay}" Style="{ThemeResource CaptionTextBlockStyle}" HorizontalAlignment="Center" Foreground="{ThemeResource FileStatusBadgeTextBrush}" TextTrimming="CharacterEllipsis" />
+                                        <TextBlock Text="{x:Bind StatusDisplay, Mode=OneWay}" Style="{ThemeResource CaptionTextBlockStyle}" HorizontalAlignment="Center" Foreground="{ThemeResource FileStatusBadgeTextBrush}" TextTrimming="CharacterEllipsis" />
                                     </Border>
-                                    <ProgressBar IsIndeterminate="{x:Bind IsProcessing, Mode=OneWay}" Visibility="{Binding IsProcessing, Converter={StaticResource BoolToVisibilityConverter}}" />
                                 </StackPanel>
                             </Grid>
                         </DataTemplate>
@@ -132,22 +131,30 @@
                         </Border>
                         
                         <!-- Main Action -->
-                        <Button Style="{ThemeResource AccentButtonStyle}" HorizontalAlignment="Stretch" Padding="12" Margin="0,12,0,0" Command="{x:Bind ViewModel.ConvertAvifCommand}">
-                            <StackPanel Orientation="Horizontal" Spacing="8">
-                                <FontIcon Glyph="&#xE768;"/>
-                                <TextBlock Text="Bắt đầu nén AVIF" />
-                            </StackPanel>
-                        </Button>
+                        <Grid Margin="0,12,0,0">
+                            <!-- Start Button -->
+                            <Button Style="{ThemeResource AccentButtonStyle}" HorizontalAlignment="Stretch" Padding="12" 
+                                    Command="{x:Bind ViewModel.ConvertAvifCommand}"
+                                    Visibility="{x:Bind ViewModel.IsConverting, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}, ConverterParameter=Invert}">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <FontIcon Glyph="&#xE768;"/>
+                                    <TextBlock Text="Bắt đầu nén AVIF" />
+                                </StackPanel>
+                            </Button>
+
+                            <!-- Processing / Stop Button -->
+                            <Button HorizontalAlignment="Stretch" Padding="12" 
+                                    Command="{x:Bind ViewModel.CancelConversionCommand}"
+                                    Visibility="{x:Bind ViewModel.IsConverting, Mode=OneWay}">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <ProgressRing IsActive="True" Width="16" Height="16" Foreground="{ThemeResource SystemFillColorCriticalBrush}" />
+                                    <TextBlock Text="Nhấn để dừng" Foreground="{ThemeResource SystemFillColorCriticalBrush}" />
+                                </StackPanel>
+                            </Button>
+                        </Grid>
                     </StackPanel>
                 </ScrollViewer>
             </Border>
         </Grid>
-
-        <!-- 3. Status Bar (Bottom) -->
-        <InfoBar Grid.Row="2" IsOpen="True" Severity="Informational" Message="{x:Bind ViewModel.StatusMessage, Mode=OneWay}" IsClosable="False">
-            <InfoBar.Content>
-                <ProgressBar Minimum="0" Maximum="{x:Bind ViewModel.ProgressMaximum, Mode=OneWay}" Value="{x:Bind ViewModel.ProgressValue, Mode=OneWay}" Visibility="{x:Bind ViewModel.IsConverting, Mode=OneWay}" Width="200" VerticalAlignment="Center" Margin="0,10,0,10"/>
-            </InfoBar.Content>
-        </InfoBar>
     </Grid>
 </Page>

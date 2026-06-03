@@ -50,9 +50,8 @@ public sealed class ImageItem : INotifyPropertyChanged
             if (!savedBytes.HasValue || !savedPercent.HasValue)
                 return string.Empty;
 
-            var absSaved = Math.Abs(savedBytes.Value);
-            var direction = savedBytes.Value >= 0 ? "giảm" : "tăng";
-            return $"{direction} {FormatSize(absSaved)} ({Math.Abs(savedPercent.Value):F1}%)";
+            var sign = savedBytes.Value >= 0 ? "-" : "+";
+            return $"{sign}{Math.Abs(savedPercent.Value):F0}%";
         }
     }
     public string CompressionDetail
