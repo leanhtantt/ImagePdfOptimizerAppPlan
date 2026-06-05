@@ -1,6 +1,6 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
-using FileUtilityHub.Core.Models;
+using FileUtilityHub_WinUI.Core.Models;
 
 namespace FileUtilityHub_WinUI.Shared.Controls;
 

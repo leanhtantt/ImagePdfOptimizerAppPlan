@@ -1,6 +1,6 @@
-using FileUtilityHub.Core.Models;
+using FileUtilityHub_WinUI.Core.Models;
 
-namespace FileUtilityHub.Core.Contracts;
+namespace FileUtilityHub_WinUI.Core.Contracts;
 
 /// <summary>
 /// Contract for navigating between features with context.

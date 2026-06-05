@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace FileUtilityHub.Core.Models;
+namespace FileUtilityHub_WinUI.Core.Models;
 
 /// <summary>
 /// Handoff contract: batch of files from one feature to another.

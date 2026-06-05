@@ -2,7 +2,7 @@ using System;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 
-namespace FileUtilityHub.Core.Models;
+namespace FileUtilityHub_WinUI.Core.Models;
 
 public enum ProcessingStatus
 {

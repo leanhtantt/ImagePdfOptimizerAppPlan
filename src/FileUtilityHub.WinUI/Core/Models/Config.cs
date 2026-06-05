@@ -1,4 +1,4 @@
-namespace FileUtilityHub.Core.Models;
+namespace FileUtilityHub_WinUI.Core.Models;
 
 public sealed class ImageConvertConfig
 {

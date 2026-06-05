@@ -7,12 +7,10 @@ using System.Threading;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using FileUtilityHub.Core.Contracts;
-using FileUtilityHub.Core.Models;
+using FileUtilityHub_WinUI.Core.Contracts;
+using FileUtilityHub_WinUI.Core.Models;
 using FileUtilityHub_WinUI.Core.Services;
-using Microsoft.UI.Xaml.Controls;
 using Windows.Storage;
-using Windows.Storage.Pickers;
 
 namespace FileUtilityHub_WinUI.Features.ImageOptimizer;
 
@@ -22,7 +20,10 @@ public partial class ImageOptimizerViewModel : ObservableObject
     private readonly ImageConvertService _convertService;
     private readonly AppStatusService _statusService;
     private readonly IFeatureHandoffService _handoffService;
+    private readonly IFilePickerService _filePickerService;
     private CancellationTokenSource? _cancellationTokenSource;
+
+    private static readonly string[] SupportedExtensions = [".jpg", ".jpeg", ".png", ".bmp", ".tif", ".tiff", ".avif"];
 
     [ObservableProperty]
     private string _currentFolder = string.Empty;
@@ -42,7 +43,7 @@ public partial class ImageOptimizerViewModel : ObservableObject
     [ObservableProperty]
     private int _resolutionIndex = 0;
 
-    // Warning state for InfoBar (doc 06 section 5.2)
+    // Warning state — uses domain enum, not WinUI InfoBarSeverity
     [ObservableProperty]
     private string _warningTitle = string.Empty;
 
@@ -53,37 +54,32 @@ public partial class ImageOptimizerViewModel : ObservableObject
     private bool _hasActiveWarning = false;
 
     [ObservableProperty]
-    private InfoBarSeverity _warningSeverity = InfoBarSeverity.Warning;
+    private WarningSeverityLevel _warningSeverity = WarningSeverityLevel.Warning;
 
     public ObservableCollection<ImageItem> ImageItems { get; } = new();
 
-    public ImageOptimizerViewModel(FileScanService scanService, ImageConvertService convertService, AppStatusService statusService, IFeatureHandoffService handoffService)
+    public ImageOptimizerViewModel(
+        FileScanService scanService,
+        ImageConvertService convertService,
+        AppStatusService statusService,
+        IFeatureHandoffService handoffService,
+        IFilePickerService filePickerService)
     {
         _scanService = scanService;
         _convertService = convertService;
         _statusService = statusService;
         _handoffService = handoffService;
+        _filePickerService = filePickerService;
     }
 
     [RelayCommand]
     private async Task AddFilesAsync()
     {
-        var picker = new FileOpenPicker();
-        WinRT.Interop.InitializeWithWindow.Initialize(picker, WinRT.Interop.WindowNative.GetWindowHandle(App.MainWindow));
-        
-        picker.FileTypeFilter.Add(".jpg");
-        picker.FileTypeFilter.Add(".jpeg");
-        picker.FileTypeFilter.Add(".png");
-        picker.FileTypeFilter.Add(".bmp");
-        picker.FileTypeFilter.Add(".tif");
-        picker.FileTypeFilter.Add(".tiff");
-        picker.FileTypeFilter.Add(".avif");
-        
-        var files = await picker.PickMultipleFilesAsync();
-        foreach (var file in files)
+        var paths = await _filePickerService.PickFilesAsync(SupportedExtensions);
+        foreach (var path in paths)
         {
-            var ext = Path.GetExtension(file.Path).TrimStart('.');
-            var fileInfo = new FileInfo(file.Path);
+            var fileInfo = new FileInfo(path);
+            var ext = Path.GetExtension(path).TrimStart('.');
             ImageItems.Add(new ImageItem
             {
                 FileName = fileInfo.Name,
@@ -98,16 +94,10 @@ public partial class ImageOptimizerViewModel : ObservableObject
     [RelayCommand]
     private async Task ChooseFolderAsync()
     {
-        var folderPicker = new FolderPicker();
-        var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(App.MainWindow);
-        WinRT.Interop.InitializeWithWindow.Initialize(folderPicker, hwnd);
-        
-        folderPicker.FileTypeFilter.Add("*");
-        var folder = await folderPicker.PickSingleFolderAsync();
-        
-        if (folder != null)
+        var folderPath = await _filePickerService.PickFolderAsync();
+        if (folderPath != null)
         {
-            CurrentFolder = folder.Path;
+            CurrentFolder = folderPath;
             var result = _scanService.ScanDirectory(CurrentFolder);
             ImageItems.Clear();
             foreach (var item in result.ValidFiles)
@@ -168,10 +158,7 @@ public partial class ImageOptimizerViewModel : ObservableObject
 
         IsConverting = true;
         HasActiveWarning = false;
-        ConvertAvifCommand.NotifyCanExecuteChanged();
-        CancelConversionCommand.NotifyCanExecuteChanged();
-        SendToMergeCommand.NotifyCanExecuteChanged();
-        MergeAndCompressCommand.NotifyCanExecuteChanged();
+        NotifyCommandsCanExecuteChanged();
 
         _cancellationTokenSource = new CancellationTokenSource();
         var token = _cancellationTokenSource.Token;
@@ -218,11 +205,11 @@ public partial class ImageOptimizerViewModel : ObservableObject
 
             var item = ImageItems[i];
             item.Status = ProcessingStatus.Processing;
-            
+
             _statusService.ReportProgress(i, ImageItems.Count, $"Đang nén: {item.FileName}");
-            
+
             await _convertService.ConvertToAvifAsync(item, config, CurrentFolder);
-            
+
             _statusService.ReportProgress(i + 1, ImageItems.Count, $"Đang nén: {item.FileName}");
         }
 
@@ -231,14 +218,14 @@ public partial class ImageOptimizerViewModel : ObservableObject
             _statusService.StopProcessing("Đã hoàn tất nén AVIF toàn bộ ảnh trong danh sách!");
         }
 
-        // Show warning InfoBar if any items have warnings (doc 08 section 5)
+        // Show warning using domain severity, not WinUI InfoBarSeverity
         var warningItems = ImageItems.Where(i => i.Status == ProcessingStatus.Warning).ToList();
         if (warningItems.Count > 0)
         {
             HasActiveWarning = true;
             WarningTitle = "Một số file output nặng hơn gốc";
             WarningMessage = $"{warningItems.Count} file cần xem lại CRF hoặc giữ file gốc.";
-            WarningSeverity = InfoBarSeverity.Warning;
+            WarningSeverity = WarningSeverityLevel.Warning;
         }
 
         var errorItems = ImageItems.Where(i => i.Status == ProcessingStatus.Error).ToList();
@@ -247,17 +234,13 @@ public partial class ImageOptimizerViewModel : ObservableObject
             HasActiveWarning = true;
             WarningTitle = warningItems.Count > 0 ? "Có lỗi và cảnh báo" : "Có file nén thất bại";
             WarningMessage = $"{errorItems.Count} file lỗi. Kiểm tra FFmpeg hoặc file input.";
-            WarningSeverity = InfoBarSeverity.Error;
+            WarningSeverity = WarningSeverityLevel.Error;
         }
 
-        // Update HasAvifOutput for handoff buttons
         HasAvifOutput = ImageItems.Any(i => i.Status == ProcessingStatus.Success && i.OutputPath != null);
 
         IsConverting = false;
-        ConvertAvifCommand.NotifyCanExecuteChanged();
-        CancelConversionCommand.NotifyCanExecuteChanged();
-        SendToMergeCommand.NotifyCanExecuteChanged();
-        MergeAndCompressCommand.NotifyCanExecuteChanged();
+        NotifyCommandsCanExecuteChanged();
     }
 
     private bool CanConvertAvif() => !IsConverting && ImageItems.Count > 0;
@@ -266,17 +249,7 @@ public partial class ImageOptimizerViewModel : ObservableObject
     [RelayCommand(CanExecute = nameof(CanSendToMerge))]
     private void SendToMerge()
     {
-        // Build FileBatchContext and navigate to File Merge / PDF Builder
-        // Implementation will be wired in Phase 6 when FeatureHandoffService is ready
-        var context = new FileBatchContext
-        {
-            SourceFeature = "ImageOptimizer",
-            SourceFolder = CurrentFolder,
-            Files = ImageItems
-                .Where(i => i.OutputPath != null)
-                .Select(i => i.OutputPath!)
-                .ToList(),
-        };
+        var context = BuildHandoffContext();
         _handoffService.NavigateToMerge(context);
     }
 
@@ -285,9 +258,15 @@ public partial class ImageOptimizerViewModel : ObservableObject
     [RelayCommand(CanExecute = nameof(CanMergeAndCompress))]
     private void MergeAndCompress()
     {
-        // Build FileBatchContext and run automation pipeline
-        // Image Optimizer -> File Merge / PDF Builder -> PDF Compressor
-        var context = new FileBatchContext
+        var context = BuildHandoffContext();
+        _handoffService.NavigateToMergeAndCompress(context);
+    }
+
+    private bool CanMergeAndCompress() => HasAvifOutput && !IsConverting;
+
+    private FileBatchContext BuildHandoffContext()
+    {
+        return new FileBatchContext
         {
             SourceFeature = "ImageOptimizer",
             SourceFolder = CurrentFolder,
@@ -296,10 +275,7 @@ public partial class ImageOptimizerViewModel : ObservableObject
                 .Select(i => i.OutputPath!)
                 .ToList(),
         };
-        _handoffService.NavigateToMergeAndCompress(context);
     }
-
-    private bool CanMergeAndCompress() => HasAvifOutput && !IsConverting;
 
     // Drag & drop handler for DropZoneControl
     [RelayCommand]
@@ -320,16 +296,15 @@ public partial class ImageOptimizerViewModel : ObservableObject
                 }
                 else if (storageItem is StorageFile file)
                 {
-                    var ext = Path.GetExtension(file.Path).ToLowerInvariant().TrimStart('.');
-                    var supportedExts = new[] { "jpg", "jpeg", "png", "avif", "bmp", "tif", "tiff" };
-                    if (supportedExts.Contains(ext))
+                    var ext = Path.GetExtension(file.Path).ToLowerInvariant();
+                    if (SupportedExtensions.Contains(ext))
                     {
                         var fileInfo = new FileInfo(file.Path);
                         ImageItems.Add(new ImageItem
                         {
                             FileName = fileInfo.Name,
                             SourcePath = fileInfo.FullName,
-                            Format = ext,
+                            Format = ext.TrimStart('.'),
                             OriginalSizeBytes = fileInfo.Length
                         });
                     }
@@ -345,16 +320,19 @@ public partial class ImageOptimizerViewModel : ObservableObject
         HasAvifOutput = ImageItems.Any(i => i.Status == ProcessingStatus.Success && i.OutputPath != null);
         _statusService.CurrentItemCount = ImageItems.Count;
         _statusService.StatusMessage = $"Đã tải {ImageItems.Count} ảnh vào danh sách chờ.";
+        NotifyCommandsCanExecuteChanged();
+    }
+
+    private void NotifyCommandsCanExecuteChanged()
+    {
         ConvertAvifCommand.NotifyCanExecuteChanged();
+        CancelConversionCommand.NotifyCanExecuteChanged();
         SendToMergeCommand.NotifyCanExecuteChanged();
         MergeAndCompressCommand.NotifyCanExecuteChanged();
     }
 
     partial void OnIsConvertingChanged(bool value)
     {
-        ConvertAvifCommand.NotifyCanExecuteChanged();
-        CancelConversionCommand.NotifyCanExecuteChanged();
-        SendToMergeCommand.NotifyCanExecuteChanged();
-        MergeAndCompressCommand.NotifyCanExecuteChanged();
+        NotifyCommandsCanExecuteChanged();
     }
 }

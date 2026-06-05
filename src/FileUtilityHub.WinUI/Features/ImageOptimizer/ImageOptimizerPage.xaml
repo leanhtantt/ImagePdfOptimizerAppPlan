@@ -4,7 +4,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-    xmlns:models="using:FileUtilityHub.Core.Models"
+    xmlns:models="using:FileUtilityHub_WinUI.Core.Models"
     xmlns:shared="using:FileUtilityHub_WinUI.Shared.Controls"
     mc:Ignorable="d">
 
@@ -20,7 +20,7 @@
             <AppBarButton Icon="Add" Label="Thêm File" Command="{x:Bind ViewModel.AddFilesCommand}"/>
             <AppBarButton Icon="Folder" Label="Import Folder" Command="{x:Bind ViewModel.ChooseFolderCommand}"/>
             <AppBarSeparator/>
-            <AppBarButton Icon="Delete" Label="Xóa Đã Chọn" Command="{x:Bind ViewModel.RemoveSelectedCommand}" CommandParameter="{Binding SelectedItems, ElementName=FileList}"/>
+            <AppBarButton Icon="Delete" Label="Xóa Đã Chọn" Click="OnRemoveSelectedClick"/>
             <AppBarButton Icon="Clear" Label="Xóa Tất Cả" Command="{x:Bind ViewModel.ClearAllCommand}"/>
             <AppBarSeparator/>
 
@@ -42,7 +42,7 @@
         <InfoBar Grid.Row="1"
                  Title="{x:Bind ViewModel.WarningTitle, Mode=OneWay}"
                  Message="{x:Bind ViewModel.WarningMessage, Mode=OneWay}"
-                 Severity="{x:Bind ViewModel.WarningSeverity, Mode=OneWay}"
+                 Severity="{x:Bind ViewModel.WarningSeverity, Mode=OneWay, Converter={StaticResource SeverityToInfoBarConverter}}"
                  IsOpen="{x:Bind ViewModel.HasActiveWarning, Mode=OneWay}"
                  IsClosable="True" />
 
@@ -71,8 +71,9 @@
                             <Grid Padding="12,8" ColumnSpacing="12">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="Auto" /> <!-- Thumbnail placeholder -->
-                                    <ColumnDefinition Width="*" />    <!-- Name + metadata -->
-                                    <ColumnDefinition Width="Auto" /> <!-- Savings -->
+                                    <ColumnDefinition Width="*" />    <!-- Name -->
+                                    <ColumnDefinition Width="160" />  <!-- Size comparison -->
+                                    <ColumnDefinition Width="60" />   <!-- Savings -->
                                     <ColumnDefinition Width="Auto" /> <!-- Status badge -->
                                 </Grid.ColumnDefinitions>
 
@@ -84,25 +85,28 @@
                                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
                                 </Border>
 
-                                <!-- Name + Size comparison (2-line layout per doc 06 section 8) -->
-                                <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
-                                    <TextBlock Text="{x:Bind FileName}"
-                                               Style="{ThemeResource BodyTextBlockStyle}"
-                                               TextTrimming="CharacterEllipsis" />
-                                    <TextBlock Text="{x:Bind SizeComparison, Mode=OneWay}"
-                                               Style="{ThemeResource CaptionTextBlockStyle}"
-                                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                               TextTrimming="CharacterEllipsis" />
-                                </StackPanel>
+                                <!-- Name -->
+                                <TextBlock Grid.Column="1" Text="{x:Bind FileName}"
+                                           Style="{ThemeResource BodyTextBlockStyle}"
+                                           VerticalAlignment="Center"
+                                           TextTrimming="CharacterEllipsis" />
+
+                                <!-- Size comparison -->
+                                <TextBlock Grid.Column="2" Text="{x:Bind SizeComparison, Mode=OneWay}"
+                                           Style="{ThemeResource BodyTextBlockStyle}"
+                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                           VerticalAlignment="Center"
+                                           TextTrimming="CharacterEllipsis" />
 
                                 <!-- Savings percentage -->
-                                <TextBlock Grid.Column="2" Text="{x:Bind SavingsSummary, Mode=OneWay}"
-                                           Style="{ThemeResource BodyStrongTextBlockStyle}"
+                                <TextBlock Grid.Column="3" Text="{x:Bind SavingsSummary, Mode=OneWay}"
+                                           Style="{ThemeResource BodyTextBlockStyle}"
                                            VerticalAlignment="Center"
+                                           TextAlignment="Right"
                                            Margin="8,0" />
 
                                 <!-- Status Badge (shared control) -->
-                                <shared:FileStatusBadge Grid.Column="3"
+                                <shared:FileStatusBadge Grid.Column="4"
                                                          Status="{x:Bind Status, Mode=OneWay}"
                                                          VerticalAlignment="Center"
                                                          MinWidth="100" />

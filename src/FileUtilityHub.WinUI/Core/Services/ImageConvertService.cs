@@ -1,7 +1,7 @@
 using System;
 using System.IO;
 using System.Threading.Tasks;
-using FileUtilityHub.Core.Models;
+using FileUtilityHub_WinUI.Core.Models;
 using FileUtilityHub_WinUI.Infrastructure.Ffmpeg;
 using FileUtilityHub_WinUI.Infrastructure.FileSystem;
 

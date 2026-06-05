@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace FileUtilityHub.Core.Models;
+namespace FileUtilityHub_WinUI.Core.Models;
 
 /// <summary>
 /// Structured operation result. All services should return this instead of bool/string.

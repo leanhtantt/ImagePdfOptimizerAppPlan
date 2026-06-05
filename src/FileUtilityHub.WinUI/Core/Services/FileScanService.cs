@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using FileUtilityHub.Core.Models;
+using FileUtilityHub_WinUI.Core.Models;
 
 namespace FileUtilityHub_WinUI.Core.Services;
 
