@@ -8,29 +8,46 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d">
 
-    <!--
-        This is the main content area of your application.
-        Add your UI elements here — for example, controls, layouts, and data-bound views.
-        Use 'dotnet new winui-page' to create additional pages and navigate to them via
-        the Frame in MainWindow (RootFrame).
-    -->
     <Grid>
         <Grid.RowDefinitions>
-            <RowDefinition Height="*" />
-            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" /> <!-- Global Warning -->
+            <RowDefinition Height="*" />    <!-- NavigationView -->
+            <RowDefinition Height="Auto" /> <!-- Status Bar -->
         </Grid.RowDefinitions>
 
-        <NavigationView Grid.Row="0" x:Name="NavView" SelectionChanged="NavView_SelectionChanged" IsBackButtonVisible="Collapsed">
+        <!-- Global Warning: FFmpeg Missing -->
+        <InfoBar Grid.Row="0"
+                 x:Name="FfmpegWarningBar"
+                 Title="Thiếu FFmpeg"
+                 Message="Bản cài đặt thiếu thành phần xử lý. Một số tính năng sẽ không hoạt động."
+                 Severity="Warning"
+                 IsOpen="{x:Bind StatusService.IsFfmpegMissing, Mode=OneWay}"
+                 IsClosable="False" />
+
+        <!-- Suite Navigation -->
+        <NavigationView Grid.Row="1" x:Name="NavView" SelectionChanged="NavView_SelectionChanged" IsBackButtonVisible="Collapsed">
             <NavigationView.MenuItems>
-                <NavigationViewItem Icon="Pictures" Content="Image PDF Optimizer" Tag="ImagePdfOptimizer" />
-                <NavigationViewItem Icon="Document" Content="PDF Compressor" Tag="PdfCompressor" />
-                <NavigationViewItem Icon="Copy" Content="PDF Converter" Tag="PdfConverter" />
+                <NavigationViewItem Content="Tối ưu ảnh" Tag="ImageOptimizer">
+                    <NavigationViewItem.Icon><FontIcon Glyph="&#xE8B9;"/></NavigationViewItem.Icon>
+                </NavigationViewItem>
+                <NavigationViewItem Content="Gộp file" Tag="FileMergePdfBuilder">
+                    <NavigationViewItem.Icon><FontIcon Glyph="&#xE8F1;"/></NavigationViewItem.Icon>
+                </NavigationViewItem>
+                <NavigationViewItem Content="Nén PDF" Tag="PdfCompressor">
+                    <NavigationViewItem.Icon><FontIcon Glyph="&#xE7C3;"/></NavigationViewItem.Icon>
+                </NavigationViewItem>
+                <NavigationViewItem Content="Convert PDF" Tag="PdfConverter">
+                    <NavigationViewItem.Icon><FontIcon Glyph="&#xE8AB;"/></NavigationViewItem.Icon>
+                </NavigationViewItem>
+                <NavigationViewItem Content="Tách PDF" Tag="PdfSplit">
+                    <NavigationViewItem.Icon><FontIcon Glyph="&#xE8A9;"/></NavigationViewItem.Icon>
+                </NavigationViewItem>
             </NavigationView.MenuItems>
             <Frame x:Name="ContentFrame" />
         </NavigationView>
 
         <!-- Global Status Bar -->
-        <Border Grid.Row="1" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}" BorderThickness="0,1,0,0" Padding="16,8">
+        <Border Grid.Row="2" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}" BorderThickness="0,1,0,0" Padding="16,8">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />

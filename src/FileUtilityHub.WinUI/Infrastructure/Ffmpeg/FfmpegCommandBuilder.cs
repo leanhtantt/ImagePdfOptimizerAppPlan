@@ -1,0 +1,31 @@
+namespace FileUtilityHub_WinUI.Infrastructure.Ffmpeg;
+
+/// <summary>
+/// Builds FFmpeg command arguments. Centralizes command string construction
+/// to keep it out of services and ViewModels.
+/// Ref: doc 07 section 11.3.
+/// </summary>
+public static class FfmpegCommandBuilder
+{
+    /// <summary>
+    /// Build AVIF conversion command arguments.
+    /// </summary>
+    public static string BuildAvifConvertCommand(
+        string inputPath, string outputPath,
+        int crf, int cpuUsed, int maxLongEdge)
+    {
+        var vfScale = maxLongEdge > 0
+            ? $"-vf \"scale='if(gt(iw,ih),min(iw,{maxLongEdge}),-2)':'if(gt(iw,ih),-2,min(ih,{maxLongEdge}))'\" "
+            : "";
+
+        return $"-y -i \"{inputPath}\" -frames:v 1 {vfScale}-c:v libaom-av1 -crf {crf} -cpu-used {cpuUsed} -pix_fmt yuv420p \"{outputPath}\"";
+    }
+
+    /// <summary>
+    /// Build image probe command (future use).
+    /// </summary>
+    public static string BuildImageProbeCommand(string inputPath)
+    {
+        return $"-v error -select_streams v:0 -show_entries stream=width,height -of csv=p=0 \"{inputPath}\"";
+    }
+}

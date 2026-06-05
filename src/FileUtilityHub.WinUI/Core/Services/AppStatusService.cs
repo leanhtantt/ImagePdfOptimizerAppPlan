@@ -11,6 +11,13 @@ public class AppStatusService : INotifyPropertyChanged
     private int _progressMaximum = 100;
     private string _progressPercentageText = "0%";
     private int _currentItemCount;
+    private bool _isFfmpegMissing;
+
+    public bool IsFfmpegMissing
+    {
+        get => _isFfmpegMissing;
+        set { _isFfmpegMissing = value; OnPropertyChanged(); }
+    }
 
     public int CurrentItemCount
     {

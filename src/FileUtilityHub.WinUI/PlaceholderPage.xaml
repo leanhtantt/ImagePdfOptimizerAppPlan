@@ -6,7 +6,19 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d">
 
-    <Grid>
-        <TextBlock x:Name="MessageText" Text="Coming Soon" FontSize="24" HorizontalAlignment="Center" VerticalAlignment="Center" />
+    <Grid VerticalAlignment="Center" HorizontalAlignment="Center">
+        <StackPanel Spacing="16" HorizontalAlignment="Center" MaxWidth="400">
+            <FontIcon Glyph="&#xE946;" FontSize="48"
+                      Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                      HorizontalAlignment="Center"/>
+            <TextBlock x:Name="ModuleTitle"
+                       Style="{ThemeResource SubtitleTextBlockStyle}"
+                       HorizontalAlignment="Center"/>
+            <TextBlock Text="Tính năng này sẽ được phát triển sau."
+                       Style="{ThemeResource BodyTextBlockStyle}"
+                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                       HorizontalAlignment="Center" TextWrapping="Wrap"
+                       TextAlignment="Center"/>
+        </StackPanel>
     </Grid>
 </Page>

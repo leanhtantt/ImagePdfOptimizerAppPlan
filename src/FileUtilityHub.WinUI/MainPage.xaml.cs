@@ -2,14 +2,11 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.Extensions.DependencyInjection;
 using FileUtilityHub_WinUI.Core.Services;
 
-// To learn more about WinUI, the WinUI project structure,
-// and more about our project templates, see: http://aka.ms/winui-project-info.
-
 namespace FileUtilityHub_WinUI;
 
 /// <summary>
 /// The main content page displayed inside the application window.
-/// Add your UI logic, event handlers, and data binding here.
+/// Contains suite navigation and global status bar.
 /// </summary>
 public sealed partial class MainPage : Page
 {
@@ -31,9 +28,9 @@ public sealed partial class MainPage : Page
         else
         {
             var navItemTag = args.SelectedItemContainer?.Tag?.ToString();
-            if (navItemTag == "ImagePdfOptimizer")
+            if (navItemTag == "ImageOptimizer")
             {
-                ContentFrame.Navigate(typeof(Features.ImagePdfOptimizer.ImagePdfOptimizerPage));
+                ContentFrame.Navigate(typeof(Features.ImageOptimizer.ImageOptimizerPage));
             }
             else
             {

@@ -23,11 +23,9 @@ public class ImageConvertService
         var outDir = _outputManager.CreateAvifOutputDirectory(sourceFolder);
         var outFile = Path.Combine(outDir, Path.GetFileNameWithoutExtension(item.FileName) + ".avif");
 
-        var vfScale = config.MaxLongEdge > 0 
-            ? $"-vf \"scale='if(gt(iw,ih),min(iw,{config.MaxLongEdge}),-2)':'if(gt(iw,ih),-2,min(ih,{config.MaxLongEdge}))'\" " 
-            : "";
-
-        var args = $"-y -i \"{item.SourcePath}\" -frames:v 1 {vfScale}-c:v libaom-av1 -crf {config.AvifCrf} -cpu-used {config.AvifCpuUsed} -pix_fmt yuv420p \"{outFile}\"";
+        // Use FfmpegCommandBuilder instead of inline string building
+        var args = FfmpegCommandBuilder.BuildAvifConvertCommand(
+            item.SourcePath, outFile, config.AvifCrf, config.AvifCpuUsed, config.MaxLongEdge);
 
         item.AvifCrfUsed = config.AvifCrf;
         item.MaxLongEdgeUsed = config.MaxLongEdge;
