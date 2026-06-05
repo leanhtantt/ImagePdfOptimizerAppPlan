@@ -1,10 +1,20 @@
-# Product Requirements: Image PDF Optimizer App
+# Product Requirements: Image Optimizer
 
 ## 1. Bài toán
 
-Người dùng cần nén nhiều ảnh tài liệu thành file PDF nhẹ nhưng vẫn rõ, đặc biệt với hồ sơ có con dấu màu, chữ ký, logo hoặc watermark.
+Người dùng cần nén nhiều ảnh tài liệu thành file ảnh nhẹ hơn nhưng vẫn rõ, đặc biệt với hồ sơ có con dấu màu, chữ ký, logo hoặc watermark.
 
-Điểm khó là AVIF có thể rất nhẹ, nhưng khi combine thành PDF, ảnh thường phải decode và encode lại. Nếu cấu hình PDF sai, file PDF sẽ phình lên nhiều lần.
+Điểm khó là người dùng không kỹ thuật cần batch ảnh nhẹ hơn, có thể review chênh lệch dung lượng, rồi gửi batch đó sang feature gộp/nén PDF nếu cần.
+
+Quyết định boundary mới:
+
+```text
+Nén ảnh nằm ở Image Optimizer.
+Gộp file nằm ở File Merge / PDF Builder.
+Nén PDF nằm ở PDF Compressor.
+```
+
+Chi tiết xem `09_FEATURE_BOUNDARY_AND_AUTOMATION_DECISION.md`.
 
 ## 2. Người dùng mục tiêu
 
@@ -24,10 +34,9 @@ Mở app
 -> Người dùng chỉnh cấu hình nén ảnh
 -> Convert AVIF
 -> Review dung lượng
--> Combine PDF
--> Chỉnh q PDF
--> Tạo lại PDF nếu chưa ưng
--> Chọn bản final
+-> Có thể nén lại ảnh
+-> Có thể bấm Gộp file để chuyển batch sang File Merge / PDF Builder
+-> Có thể bấm Gộp và nén để chạy automation sang PDF Compressor
 ```
 
 ## 4. Input hỗ trợ
@@ -50,8 +59,7 @@ App tạo:
 
 ```text
 Sao ke GD
-├── compressed-avif
-└── pdf-output
+└── compressed-avif
 ```
 
 File gốc không bị sửa.
@@ -88,7 +96,7 @@ Không làm WebP trong MVP đầu tiên.
 Lý do:
 
 - Bộ test thực tế đã chứng minh AVIF đạt hiệu quả tốt.
-- MVP cần tập trung luồng đã kiểm chứng: AVIF -> PDF RGB -> chỉnh q -> final.
+- MVP Image Optimizer cần tập trung luồng đã kiểm chứng: ảnh gốc -> AVIF -> review dung lượng -> handoff nếu cần.
 - Nếu sau này có nhu cầu tương thích định dạng khác, WebP sẽ được đánh giá lại như một scope V2, không phải backlog bắt buộc.
 
 ## 7. Resolution
@@ -109,90 +117,47 @@ Gợi ý:
 - 2560px: rõ hơn cho tài liệu có chữ nhỏ.
 - Giữ nguyên: dùng khi cần tối đa chi tiết.
 
-## 8. Combine PDF
+## 8. Handoff sang feature khác
 
-PDF combine phải dùng ảnh đã nén ở bước trước.
-
-Mặc định:
-
-- Page mode: theo kích thước ảnh.
-- Color mode: RGB.
-- Không ép A4.
-- Không margin.
-- Không đổi orientation.
-
-Mode phụ:
-
-- Fit A4.
-- Full A4.
-
-## 9. PDF q
-
-PDF q dùng để kiểm soát dung lượng khi nhúng ảnh vào PDF.
-
-Nguyên tắc:
-
-- q càng thấp -> đẹp hơn -> file nặng hơn.
-- q càng cao -> nhẹ hơn -> ảnh mềm hơn.
-- Dải nhanh: 4-20.
-- Dải advanced: 1-30.
-- q 1 là đẹp nhất thực dụng.
-
-Preset:
-
-| Preset | q | Mục tiêu |
-|---|---:|---|
-| Rất đẹp | 4 | Chữ rõ, file lớn |
-| Đẹp | 6 | Chất lượng cao |
-| Đẹp nhẹ | 8 | Bắt đầu nhẹ |
-| Cân bằng | 10 | Điểm bắt đầu tốt |
-| Khuyến nghị | 12 | Mặc định |
-| Nhẹ | 14 | Nhẹ hơn |
-| Rất nhẹ | 16 | File nhỏ hơn |
-| Siêu nhẹ | 18-20 | Ép dung lượng |
-
-## 10. PDF versions
-
-Mỗi lần tạo PDF phải thêm một version vào danh sách:
+Image Optimizer có thể expose top actions:
 
 ```text
-q12-rgb    1.40 MB
-q14-rgb    1.33 MB
-q15-rgb    1.21 MB
-final      1.40 MB
+Gộp file
+Gộp và nén
 ```
 
-Mỗi version có:
+`Gộp file` gửi batch ảnh hiện tại hoặc output `compressed-avif` sang `File Merge / PDF Builder`.
 
-- Tên file.
-- q.
-- color mode.
-- page mode.
-- dung lượng.
-- nút mở.
-- nút đặt final.
-- warning nếu có.
+`Gộp và nén` chạy automation:
 
-## 11. Business rules
+```text
+Image Optimizer output
+-> File Merge / PDF Builder dùng setting gộp hiện hành nếu có
+-> tạo PDF
+-> gửi PDF sang PDF Compressor
+-> PDF Compressor auto preview
+```
 
-- Không tự bật Gray.
-- Bật Gray phải confirm.
-- Gray version phải có warning badge.
+Người dùng vẫn có thể quay lại Image Optimizer để nén lại ảnh bất cứ lúc nào.
+
+## 9. Business rules
+
 - Output nặng hơn gốc phải warning.
 - Thiếu FFmpeg phải chặn job và hướng dẫn cấu hình.
 - File output tồn tại phải hỏi overwrite, tạo tên mới hoặc bỏ qua.
-- Chỉ chỉnh q PDF thì không cần convert ảnh lại.
 - FFmpeg phải được bundle sẵn trong app/package khi giao user; user cuối không cần tự cài FFmpeg hoặc cấu hình path.
+- Image Optimizer không tự gộp PDF hoặc nén PDF trong cùng màn.
+- Automation giữa feature phải đi qua job context/handoff rõ ràng.
 
-## 12. Acceptance product
+## 10. Acceptance product
 
-Product đạt khi người dùng làm được trọn luồng:
+Feature đạt khi người dùng làm được luồng:
 
 ```text
-Chọn folder -> Nén AVIF -> Review -> Tạo PDF -> Chỉnh q -> Chọn final
+Chọn folder -> Nén AVIF -> Review chênh lệch -> Nén lại nếu cần -> Gửi batch sang feature gộp/nén nếu cần
 ```
 
-Với bộ sao kê thực tế, app phải giữ màu con dấu và tạo được PDF khoảng 1.3-1.5 MB nếu cấu hình q phù hợp.
+Với bộ sao kê thực tế, Image Optimizer phải tạo được output AVIF nhẹ rõ ràng so với ảnh gốc.
 
 Golden test set bắt buộc:
 
@@ -205,6 +170,5 @@ Kết quả đã kiểm chứng để đối chiếu:
 
 - 10 ảnh JPG gốc tổng khoảng 8.32 MiB.
 - 10 ảnh AVIF tổng khoảng 1.36 MiB.
-- PDF RGB q12 khoảng 1.40 MiB.
-- PDF RGB q13 khoảng 1.33 MiB.
-- PDF RGB q15 khoảng 1.21 MiB.
+
+Các mốc PDF RGB q12/q13/q15 chuyển sang acceptance của `File Merge / PDF Builder` và `PDF Compressor`.

@@ -1,6 +1,8 @@
 # Technical Architecture Plan
 
-> Phạm vi: tài liệu này mô tả kiến trúc kỹ thuật cho app suite `FileUtilityHub` và module đầu tiên `Features/ImagePdfOptimizer`. Không đặt mental model app là `ImagePdfOptimizer` nữa.
+> Phạm vi: tài liệu này mô tả kiến trúc kỹ thuật cho app suite `FileUtilityHub` và module đầu tiên `Features/ImageOptimizer`. Không đặt mental model app là `ImageOptimizer` nữa.
+>
+> Quyết định boundary mới xem `09_FEATURE_BOUNDARY_AND_AUTOMATION_DECISION.md`: Image Optimizer không chứa logic gộp PDF hoặc nén PDF.
 
 ## 1. Tổng quan
 
@@ -45,20 +47,22 @@ FileUtilityHub
 │   ├── FileSystem
 │   └── Logging
 ├── Features
-│   └── ImagePdfOptimizer
-│       ├── Models
-│       ├── Services
-│       ├── Views
-│       ├── Controls
-│       └── ImagePdfOptimizerModule.cs
+│   ├── ImageOptimizer
+│   │   ├── Models
+│   │   ├── Services
+│   │   ├── Views
+│   │   ├── Controls
+│   │   └── ImageOptimizerModule.cs
+│   ├── FileMergePdfBuilder
+│   └── PdfCompressor
 └── FileUtilityHub.Tests
     ├── Core
     ├── Infrastructure
     └── Features
-        └── ImagePdfOptimizer
+        └── ImageOptimizer
 ```
 
-Nếu cần MVP nhanh, có thể bắt đầu một solution ít project hơn, nhưng folder/naming vẫn phải theo mental model `FileUtilityHub`, không đặt mọi thứ dưới `ImagePdfOptimizer`.
+Nếu cần MVP nhanh, có thể bắt đầu một solution ít project hơn, nhưng folder/naming vẫn phải theo mental model `FileUtilityHub`, không đặt mọi thứ dưới `ImageOptimizer`.
 
 ## 2.1. Ranh giới suite và feature
 
@@ -85,16 +89,42 @@ Trách nhiệm:
 - Log service.
 - Shared UI controls.
 
-### Feature: ImagePdfOptimizer
+### Feature: ImageOptimizer
 
 Trách nhiệm:
 
 - Scan ảnh cho feature này.
 - Convert AVIF.
 - Review dung lượng.
-- Combine PDF từ ảnh đã nén.
-- PDF versions/final.
+- Expose handoff `Gộp file`.
+- Expose automation `Gộp và nén`.
 - Feature-specific settings và UI panel.
+
+Không thuộc trách nhiệm:
+
+- Gộp file thành PDF.
+- Nén PDF.
+- PDF versions/final.
+
+### Feature: FileMergePdfBuilder
+
+Trách nhiệm:
+
+- Nhận file/folder hoặc `FileBatchContext`.
+- Sắp thứ tự số tự nhiên.
+- Cho reorder nếu cần.
+- Gộp file/ảnh/PDF thành một PDF output.
+- Gửi PDF output sang `PdfCompressor` nếu người dùng chọn nén tiếp.
+
+### Feature: PdfCompressor
+
+Trách nhiệm:
+
+- Nhận PDF import thủ công hoặc `PdfJobContext`.
+- Auto preview PDF.
+- Cho chỉnh setting nén PDF.
+- Nén lại nhiều lần.
+- Quản lý PDF versions/final.
 
 ## 2.2. WinUI/core binding rule
 
@@ -130,6 +160,8 @@ public sealed class ImageItem
 
 ### PdfVersion
 
+Model này thuộc `PdfCompressor`, không thuộc `ImageOptimizer`.
+
 ```csharp
 public sealed class PdfVersion
 {
@@ -163,6 +195,8 @@ public sealed class PdfConfig
     public int JpegQ { get; init; }
 }
 ```
+
+`PdfConfig` thuộc `FileMergePdfBuilder`/`PdfCompressor`. Image Optimizer chỉ dùng `ImageConvertConfig`.
 
 ## 4. Services
 
@@ -208,21 +242,23 @@ Trách nhiệm:
 
 Trách nhiệm:
 
-- Decode ảnh đã nén sang JPEG temp.
+- Thuộc `FileMergePdfBuilder`, không thuộc `ImageOptimizer`.
+- Decode ảnh đã nén sang JPEG temp nếu input là ảnh.
 - Nhúng JPEG vào PDF.
 - Giữ page size theo ảnh mặc định.
 - RGB mặc định.
-- Tạo PDF version theo q.
 - Cleanup temp.
+
+PDF q/version/final sau khi có PDF thuộc `PdfCompressor`.
 
 ### OutputManager
 
 Trách nhiệm:
 
-- Tạo `compressed-avif`, `pdf-output`.
+- Tạo output folder theo feature, ví dụ `compressed-avif`, `merged-pdf`, `compressed-pdf`.
 - Đặt tên file output.
 - Xử lý overwrite/tên mới.
-- Đặt final.
+- Đặt final chỉ thuộc `PdfCompressor`.
 
 ## 5. FFmpeg command mapping
 

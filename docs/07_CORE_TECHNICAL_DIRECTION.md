@@ -4,9 +4,11 @@
 
 Tài liệu này mô tả định hướng kỹ thuật cốt lõi cho `File Utility Hub` nếu app đi theo hướng suite nhiều module và UI WinUI 3 / Windows App SDK.
 
+Quyết định boundary mới xem `09_FEATURE_BOUNDARY_AND_AUTOMATION_DECISION.md`: không viết một workflow service duy nhất ôm cả nén ảnh, gộp file và nén PDF. Các feature nối nhau bằng job context/handoff.
+
 Mục tiêu là giữ core đủ sạch để:
 
-- Feature 01 `Image -> AVIF -> PDF Optimizer` chạy tốt.
+- Feature 01 `Image Optimizer` chạy tốt.
 - Sau này thêm PDF Compressor, PDF Converter, Combine/Split, Word Tools, Excel Tools mà không viết lại app.
 - UI framework không nuốt hết business logic.
 - FFmpeg/process/file system/log/job có thể dùng lại giữa nhiều feature.
@@ -58,18 +60,20 @@ FileUtilityHub
 │   ├── Pdf
 │   └── Tooling
 ├── Features
-│   └── ImagePdfOptimizer
-│       ├── Views
-│       ├── ViewModels
-│       ├── Models
-│       ├── Services
-│       ├── Contracts
-│       └── Module
+│   ├── ImageOptimizer
+│   │   ├── Views
+│   │   ├── ViewModels
+│   │   ├── Models
+│   │   ├── Services
+│   │   ├── Contracts
+│   │   └── Module
+│   ├── FileMergePdfBuilder
+│   └── PdfCompressor
 └── FileUtilityHub.Tests
     ├── Core
     ├── Infrastructure
     └── Features
-        └── ImagePdfOptimizer
+        └── ImageOptimizer
 ```
 
 Nếu muốn MVP nhanh hơn, có thể gom thành ít project hơn, nhưng folder và dependency direction vẫn nên giữ như trên.
@@ -118,7 +122,7 @@ Trong WinUI, `CreateView()` có thể trả `UserControl` hoặc một descripto
 Không nên để shell hardcode:
 
 ```text
-if feature == ImagePdfOptimizer then show button Convert AVIF
+if feature == ImageOptimizer then show button Convert AVIF
 ```
 
 Shell chỉ hiển thị action do module expose.
@@ -147,9 +151,18 @@ Service nhóm Feature 01:
 - `IImageInputScanner`
 - `IImageConvertService`
 - `IImageReviewService`
-- `IPdfCombineService`
+- `IImageOptimizerWorkflow`
+- `IFeatureHandoffService`
+
+Service nhóm File Merge / PDF Builder:
+
+- `IFileMergePlanner`
+- `IPdfBuildService`
+
+Service nhóm PDF Compressor:
+
+- `IPdfCompressService`
 - `IPdfVersionService`
-- `IImagePdfOptimizerWorkflow`
 
 ViewModel nên nhận service qua constructor.
 
@@ -201,8 +214,7 @@ public interface IOutputManager
 
 Trách nhiệm:
 
-- Tạo `compressed-avif`.
-- Tạo `pdf-output`.
+- Tạo output folder theo feature, ví dụ `compressed-avif`, `merged-pdf`, `compressed-pdf`.
 - Xử lý overwrite/new name/skip.
 - Không sửa file gốc.
 - Hỗ trợ folder có tiếng Việt.
@@ -261,7 +273,7 @@ Ví dụ warning codes:
 
 ## 9. Job state model
 
-Một job dài như convert AVIF hoặc combine PDF cần state rõ:
+Một job dài như convert AVIF, gộp file hoặc nén PDF cần state rõ:
 
 ```text
 Queued
@@ -290,14 +302,14 @@ PreparingOutput
 CheckingFfmpeg
 ConvertingAvif
 ReviewingOutput
-CombiningPdf
-WritingPdfVersion
-SelectingFinal
+PreparingHandoff
 ```
 
-## 10. Feature 01 workflow service
+Các stage như `CombiningPdf`, `WritingPdfVersion`, `SelectingFinal` thuộc `File Merge / PDF Builder` và `PDF Compressor`, không thuộc Feature 01.
 
-Feature 01 nên có workflow service điều phối toàn luồng:
+## 10. Feature workflow và handoff service
+
+Feature 01 chỉ nên có workflow service điều phối luồng ảnh:
 
 ```text
 Scan input
@@ -305,9 +317,7 @@ Scan input
 -> Check FFmpeg
 -> Convert AVIF
 -> Review result
--> Combine PDF
--> Register PDF version
--> Select final
+-> Prepare handoff context nếu người dùng chọn Gộp file hoặc Gộp và nén
 ```
 
 ViewModel gọi workflow service, không tự gọi từng infrastructure service trực tiếp quá sâu.
@@ -315,12 +325,17 @@ ViewModel gọi workflow service, không tự gọi từng infrastructure servic
 Gợi ý:
 
 ```csharp
-public interface IImagePdfOptimizerWorkflow
+public interface IImageOptimizerWorkflow
 {
     Task<OperationResult<InputScanResult>> ScanInputAsync(InputScanRequest request, CancellationToken cancellationToken);
     Task<OperationResult<AvifConvertBatchResult>> ConvertAvifAsync(AvifConvertBatchRequest request, IProgress<JobProgress> progress, CancellationToken cancellationToken);
-    Task<OperationResult<PdfVersion>> CreatePdfAsync(CreatePdfRequest request, IProgress<JobProgress> progress, CancellationToken cancellationToken);
-    Task<OperationResult<PdfVersion>> SelectFinalAsync(SelectFinalPdfRequest request, CancellationToken cancellationToken);
+    Task<OperationResult<FileBatchContext>> CreateMergeHandoffAsync(CreateMergeHandoffRequest request, CancellationToken cancellationToken);
+}
+
+public interface IFeatureHandoffService
+{
+    Task<OperationResult<NavigationHandoff>> SendToMergeAsync(FileBatchContext context, CancellationToken cancellationToken);
+    Task<OperationResult<NavigationHandoff>> MergeAndSendToPdfCompressorAsync(FileBatchContext context, CancellationToken cancellationToken);
 }
 ```
 
@@ -395,7 +410,7 @@ Nhược điểm:
 Khuyến nghị:
 
 - MVP có thể bắt đầu bằng hướng đơn giản nhất chạy được.
-- Nhưng abstraction nên là `IPdfCombineService` để sau này đổi backend mà UI/core workflow không đổi.
+- Nhưng abstraction nên là `IPdfBuildService` trong `File Merge / PDF Builder` để sau này đổi backend mà UI/core workflow không đổi.
 
 ## 13. File system rules
 
@@ -414,7 +429,8 @@ Output mặc định:
 ```text
 InputFolder
 ├── compressed-avif
-└── pdf-output
+├── merged-pdf
+└── compressed-pdf
 ```
 
 ## 14. Logging direction
@@ -441,8 +457,7 @@ Feature ViewModel nên có state dạng:
 
 ```text
 ObservableCollection<ImageItemViewModel> Images
-ObservableCollection<PdfVersionViewModel> PdfVersions
-ImagePdfOptimizerState CurrentState
+ImageOptimizerState CurrentState
 JobProgressViewModel? CurrentProgress
 IReadOnlyList<AppWarningViewModel> Warnings
 AppErrorViewModel? Error
@@ -453,10 +468,10 @@ Commands:
 - `SelectFolderCommand`
 - `AddFilesCommand`
 - `ConvertAvifCommand`
-- `CreatePdfCommand`
+- `SendToMergeCommand`
+- `MergeAndCompressCommand`
 - `CancelJobCommand`
 - `OpenOutputFolderCommand`
-- `SelectFinalPdfCommand`
 - `CopyLogCommand`
 
 Command enabled/disabled phải bám vào `CurrentState`.
@@ -484,8 +499,9 @@ Nên có test ở ba lớp:
 
 - Scan folder trả đúng valid/unsupported.
 - Convert result warning khi output nặng hơn gốc.
-- PDF version list thêm item đúng.
-- Select final chỉ có một final.
+- Handoff context chứa đúng output `compressed-avif`.
+
+PDF version/final tests thuộc `PDF Compressor`.
 
 Golden test `Sao ke GD` là QA thực tế, không nhất thiết là automated test trong repo nếu dữ liệu không nằm trong repo.
 
@@ -493,13 +509,14 @@ Golden test `Sao ke GD` là QA thực tế, không nhất thiết là automated 
 
 Không nên:
 
-- Đặt mọi thứ dưới namespace `ImagePdfOptimizer`.
+- Đặt mọi thứ dưới namespace `ImageOptimizer`.
 - Để MainWindow biết chi tiết convert AVIF.
 - Để ViewModel tự ghép FFmpeg command string.
 - Để service trả lỗi chỉ bằng raw exception.
 - Hardcode output path tuyệt đối.
 - Bắt user cuối cấu hình FFmpeg path trong MVP.
-- Convert lại AVIF khi người dùng chỉ chỉnh PDF q.
+- Để Image Optimizer ôm cả logic gộp/nén PDF.
+- Convert lại AVIF khi người dùng đang thao tác trong PDF Compressor.
 - Bật Gray mặc định.
 - Ép A4 mặc định.
 - Im lặng bỏ qua file lỗi hoặc output nặng hơn gốc.
@@ -517,10 +534,11 @@ Nếu chuyển sang WinUI ngay, thứ tự nên là:
 7. Implement Feature 01 ViewModel state và basic views.
 8. Implement AVIF convert workflow.
 9. Implement review/result UI.
-10. Implement PDF combine abstraction.
-11. Implement PDF versions/final.
-12. Polish warning/log/cancel.
-13. QA bằng `Sao ke GD`.
+10. Implement handoff actions `Gộp file` và `Gộp và nén`.
+11. Polish warning/log/cancel.
+12. QA Image Optimizer bằng `Sao ke GD`.
+13. Implement `File Merge / PDF Builder`.
+14. Implement `PDF Compressor`.
 
 ## 19. Khuyến nghị chốt
 

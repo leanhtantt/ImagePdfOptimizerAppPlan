@@ -1,6 +1,8 @@
-# Feature 01 Implementation Phases
+# Feature 01 Implementation Phases: Image Optimizer
 
-> Phạm vi: các phase dưới đây chỉ áp dụng cho **Feature 01: Image -> AVIF -> PDF Optimizer**. Core app shell và module navigation xem trong `00_APP_SUITE_MASTER_PLAN.md`.
+> Phạm vi: các phase dưới đây chỉ áp dụng cho **Feature 01: Image Optimizer**. Core app shell và module navigation xem trong `00_APP_SUITE_MASTER_PLAN.md`.
+>
+> Quyết định boundary mới xem `09_FEATURE_BOUNDARY_AND_AUTOMATION_DECISION.md`: gộp file và nén PDF không còn là phase nội bộ của Feature 01.
 
 ## Phase 0: Chuẩn bị app shell và module Feature 01
 
@@ -8,7 +10,7 @@ Mục tiêu:
 
 - Tạo project `.NET 8 + WinUI 3 / Windows App SDK` theo hướng app nhiều tab/module.
 - Tạo shell chung trước, không hardcode app chỉ có một feature.
-- Tạo module `ImagePdfOptimizer`.
+- Tạo module `ImageOptimizer`.
 - Tạo model/core service skeleton.
 
 Deliverables:
@@ -17,7 +19,7 @@ Deliverables:
 - `MainWindow` có `NavigationView`/module navigation và feature host.
 - Tab Feature 01 mở được.
 - Các tab khác có thể là placeholder.
-- Có folder `Shared`, `Infrastructure`, `Features/ImagePdfOptimizer`.
+- Có folder `Shared`, `Infrastructure`, `Features/ImageOptimizer`.
 
 ## Phase 1: Core file scan và FFmpeg
 
@@ -71,11 +73,11 @@ Deliverables:
 
 - Shell `NavigationView`.
 - Header/action area.
-- Feature host render `ImagePdfOptimizer` view.
+- Feature host render `ImageOptimizer` view.
 - Workspace.
 - Settings panel có scroll.
 - Status/progress area.
-- Resource dictionary cho theme/spacing/semantic brushes.
+- Dùng WinUI default resources/controls; không dựng palette riêng.
 
 Acceptance:
 
@@ -93,8 +95,8 @@ Mục tiêu:
 Deliverables:
 
 - `DropZoneControl` dùng WinUI visual states.
-- `FileTableView` dùng `ListView.ItemTemplate`, có thumbnail/name/size/status/warning.
-- `QualityStepperSlider` dùng chung cho AVIF CRF và PDF q.
+- `FileTableView` dùng `ListView.ItemTemplate`, có file/path/size/delta/status/warning.
+- `QualityStepperSlider` dùng cho AVIF CRF; PDF q thuộc `PDF Compressor`.
 - Warning/error dùng `InfoBar`/`ContentDialog`.
 - ViewModel expose state/commands trước khi nối FFmpeg thật.
 
@@ -102,7 +104,7 @@ Acceptance:
 
 - Không có file scan/FFmpeg/PDF logic trong code-behind.
 - Không có list file dạng text thô thay cho `ListView.ItemTemplate`.
-- Không hardcode style từng màn nếu đã có shared resource.
+- Không hardcode màu/style từng màn; dùng WinUI default controls trước.
 
 ## Phase 4: Preview và review AVIF
 
@@ -122,51 +124,28 @@ Acceptance:
 
 - Người dùng biết ảnh nào nén thành công, ảnh nào lỗi, ảnh nào nặng hơn.
 
-## Phase 5: Combine PDF
+## Phase 5: Handoff sang File Merge / PDF Builder
 
 Mục tiêu:
 
-- Tạo PDF từ ảnh đã nén.
-- Mặc định giữ size/orientation ảnh.
-- RGB mặc định.
-- q slider.
+- Cho người dùng đi tiếp từ ảnh đã nén sang feature gộp file hoặc automation gộp và nén.
+- Không gộp PDF trực tiếp trong màn Image Optimizer.
 
 Deliverables:
 
-- Page mode selector.
-- Color mode selector.
-- PDF q stepper-slider.
-- Tạo PDF.
-- Output vào `pdf-output`.
+- Top action `Gộp file`.
+- Top action `Gộp và nén`.
+- `FileBatchContext` chứa danh sách ảnh, output folder và suggested order.
+- Điều hướng sang `File Merge / PDF Builder` với context.
+- Automation `Gộp và nén`: Image Optimizer -> File Merge / PDF Builder -> PDF Compressor.
 
 Acceptance:
 
-- Không ép A4 mặc định.
-- Không dùng Gray mặc định.
-- PDF giữ màu con dấu.
-- Chỉnh q tạo được file dung lượng khác nhau.
+- Gửi đúng batch ảnh đã chọn hoặc output `compressed-avif`.
+- Người dùng quay lại Image Optimizer vẫn thấy state/list để nén lại.
+- Không có nút `Nén` chung chung nhưng chạy nhiều bước ẩn.
 
-## Phase 6: PDF versions và final
-
-Mục tiêu:
-
-- Lưu lịch sử PDF trong phiên làm việc.
-- Chọn final.
-
-Deliverables:
-
-- `PdfVersionList`.
-- Mở PDF.
-- Mở folder output.
-- Đặt final.
-- Badge warning cho Gray.
-
-Acceptance:
-
-- Tạo q12, q14, q15 thấy đủ trong list.
-- Chọn một bản làm final được.
-
-## Phase 7: Warning, confirm, log
+## Phase 6: Warning, confirm, log
 
 Mục tiêu:
 
@@ -174,7 +153,6 @@ Mục tiêu:
 
 Deliverables:
 
-- Gray confirm dialog.
 - Warning output nặng hơn gốc.
 - Error box tiếng Việt.
 - Log dialog.
@@ -183,9 +161,9 @@ Deliverables:
 Acceptance:
 
 - Không có lỗi quan trọng chỉ hiện raw exception.
-- Gray mode không bật im lặng.
+- Output nặng hơn gốc có gợi ý xử lý rõ.
 
-## Phase 8: QA thực tế
+## Phase 7: QA thực tế
 
 Mục tiêu:
 
@@ -194,15 +172,12 @@ Mục tiêu:
 Checklist:
 
 - Convert AVIF chạy được.
-- Combine PDF RGB chạy được.
-- q12/q14/q15 ra size khác nhau.
-- Kết quả đối chiếu thực tế: 10 JPG gốc khoảng 8.32 MiB, 10 AVIF khoảng 1.36 MiB, PDF q12/q13/q15 nằm trong khoảng đã kiểm chứng.
-- Con dấu màu còn.
-- Không ép A4.
+- Kết quả đối chiếu thực tế: 10 JPG gốc khoảng 8.32 MiB, 10 AVIF khoảng 1.36 MiB.
+- Handoff sang feature gộp/nén nhận đúng `compressed-avif`.
 - File gốc không đổi.
 - App không treo khi xử lý.
 
-## Phase 9: Polish MVP
+## Phase 8: Polish MVP
 
 Mục tiêu:
 
@@ -214,14 +189,14 @@ Tasks:
 - Button text.
 - Tooltip disabled.
 - Progress message.
-- Version naming.
-- Final PDF banner.
 - Kiểm tra 1366x768.
 
-## Phase 10: Sau MVP
+## Phase 9: Sau MVP
 
 Tính năng sau MVP:
 
+- Implement đầy đủ `File Merge / PDF Builder`.
+- Implement đầy đủ `PDF Compressor`.
 - Target size auto optimize nếu V2 có yêu cầu.
 - WebP/Both nếu V2 có nhu cầu tương thích định dạng khác.
 - Batch nhiều folder.

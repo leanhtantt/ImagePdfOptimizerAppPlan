@@ -1,5 +1,7 @@
 # WinUI UI Direction: Fluent App Shell và Feature UI
 
+> Cập nhật boundary 2026-06-04: đọc cùng `09_FEATURE_BOUNDARY_AND_AUTOMATION_DECISION.md`. Feature 01 hiện là `Image Optimizer`; gộp file thuộc `File Merge / PDF Builder`; nén PDF thuộc `PDF Compressor`.
+
 ## 1. Vai trò của tài liệu này
 
 Tài liệu này bổ sung định hướng nếu app không đi theo MVP WinForms tối giản mà chuyển sang **WinUI 3 / Windows App SDK** ngay từ đầu.
@@ -14,7 +16,7 @@ clean tool UI
 không hardcode một feature
 ```
 
-Tài liệu này áp dụng cho app suite `File Utility Hub` và đặc biệt là cách dựng UI cho Feature 01 `Image -> AVIF -> PDF Optimizer` trong WinUI.
+Tài liệu này áp dụng cho app suite `File Utility Hub` và đặc biệt là cách dựng UI cho Feature 01 `Image Optimizer` trong WinUI. Các hướng dẫn PDF trong file này chỉ áp dụng cho `File Merge / PDF Builder` hoặc `PDF Compressor`.
 
 ## 2. Kết luận chính
 
@@ -32,7 +34,7 @@ Nhưng app có đẹp như Windows hay không phụ thuộc vào việc:
 
 - Dùng đúng control WinUI có sẵn.
 - Compose layout đúng bằng XAML.
-- Dùng `ThemeResource` thay vì hardcode màu/font quá nhiều.
+- Dùng style/control mặc định của WinUI thay vì hardcode visual riêng.
 - Thiết kế `DataTemplate` cho list/card tử tế.
 - Có spacing, typography, visual hierarchy nhất quán.
 - Tách shell UI, shared controls và feature UI rõ ràng.
@@ -149,7 +151,7 @@ Nếu row template quá thô, app vẫn xấu dù đang dùng WinUI.
 | Preset | `RadioButtons`, `ComboBox` hoặc pill buttons custom | Tuỳ mật độ UI |
 | Warning | `InfoBar` | Output nặng hơn gốc, Gray warning |
 | Error | `InfoBar` hoặc `ContentDialog` | Không chỉ show raw exception |
-| PDF versions | `ListView` hoặc card list | Có q, size, color mode, final badge |
+| PDF versions | `ListView` hoặc card list | Thuộc `PDF Compressor`, có q, size, color mode, final badge |
 | Final PDF banner | `InfoBar` hoặc custom card | Hiển thị bản final rõ |
 | Progress | `ProgressBar` + text | Hiển thị file hiện tại |
 
@@ -229,60 +231,37 @@ Gợi ý row template:
 - Row padding: 10-12px ngang, 8px dọc.
 - Thumbnail: 40-48px, bo góc 6-8px.
 - File name: `BodyTextBlockStyle`, ellipsis nếu dài.
-- Metadata: `CaptionTextBlockStyle`, màu secondary.
-- Status badge: pill nhỏ, màu semantic.
+- Metadata: `CaptionTextBlockStyle`, dùng style mặc định của WinUI.
+- Status badge: dùng control/trạng thái WinUI phù hợp, không tự định nghĩa màu nếu không cần.
 - Warning: icon + text ngắn, không chiếm quá nhiều chiều cao.
 - Không dùng border đậm cho từng row; để selected/hover state của ListView làm việc.
 
-## 9. ThemeResource và design tokens
+## 9. WinUI default style
 
-Để app nhìn native hơn, nên ưu tiên WinUI theme resources:
+Không tạo bảng màu, brand color, semantic brush hoặc design token riêng trong plan.
 
-```xml
-Foreground="{ThemeResource TextFillColorPrimaryBrush}"
-Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-```
+Để app nhìn native hơn, dùng mặc định của WinUI:
 
-Text style nên dùng:
+- Native controls đúng mục đích.
+- Text styles có sẵn của WinUI.
+- Theme mặc định light/dark của hệ thống.
+- Hover/pressed/focus/selected states mặc định.
+- Icon/control pattern quen thuộc của Windows.
 
-```xml
-Style="{ThemeResource TitleTextBlockStyle}"
-Style="{ThemeResource BodyTextBlockStyle}"
-Style="{ThemeResource CaptionTextBlockStyle}"
-```
+Chỉ custom style khi có lý do chức năng rõ ràng. Không custom màu chỉ để tạo nhận diện riêng.
 
-Brand color đỏ đậm của app vẫn có thể dùng cho:
+## 10. Resource usage
 
-- Primary action.
-- Active workflow step.
-- Feature accent.
-- Header highlight nếu cần.
+Resource dictionary chỉ nên dùng khi cần gom style/control dùng lại thật sự, không dùng để dựng palette riêng.
 
-Nhưng không nên hardcode tất cả background/text/border theo bảng màu riêng. Làm vậy sẽ khiến app ít native hơn và khó hỗ trợ light/dark theme.
+Ưu tiên:
 
-## 10. Resource dictionary đề xuất
+- `XamlControlsResources`.
+- Style mặc định của WinUI.
+- Shared component behavior.
+- Icon keys nếu cần dùng lại.
 
-Nên có resource dictionary để quản lý style/token:
-
-```text
-Resources
-├── AppThemeResources.xaml
-├── Spacing.xaml
-├── Typography.xaml
-├── SemanticBrushes.xaml
-├── ControlStyles.xaml
-└── Icons.xaml
-```
-
-Vai trò:
-
-- `AppThemeResources.xaml`: brand color, theme override tối thiểu.
-- `Spacing.xaml`: spacing chung như 4, 8, 12, 16, 24.
-- `Typography.xaml`: style text dùng lại nếu cần.
-- `SemanticBrushes.xaml`: success/warning/error/info brushes.
-- `ControlStyles.xaml`: style cho badge, card, primary button.
-- `Icons.xaml`: icon key dùng chung.
+Không cần `AppThemeResources`, `SemanticBrushes` hoặc bảng màu riêng trong MVP.
 
 ## 11. Layout direction cho WinUI
 
@@ -327,7 +306,7 @@ Các state cần có trong WinUI cũng giống plan hiện tại:
 - `AvifReady`
 - `PdfGenerating`
 - `PdfReady`
-- `FinalSelected`
+- `FinalSelected` thuộc `PDF Compressor`
 - `Error`
 
 Mỗi state cần xác định:

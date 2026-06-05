@@ -1,5 +1,7 @@
 # Kế hoạch sản phẩm: Image PDF Optimizer App
 
+> Legacy note: file này là product plan gốc. Quyết định mới nhất nằm ở `09_FEATURE_BOUNDARY_AND_AUTOMATION_DECISION.md`: nén ảnh, gộp file và nén PDF phải là các feature/tác vụ riêng. Các đoạn mô tả `Nén AVIF trước -> Review -> Combine PDF -> chỉnh q -> final` trong file này không còn là scope trực tiếp của Feature 01 Image Optimizer.
+
 > Scope MVP đã chốt: chỉ làm AVIF -> PDF RGB -> chỉnh q -> chọn final. Không làm WebP/Both và không làm target size/auto optimize trong MVP. FFmpeg phải được bundle sẵn trong app/package, không yêu cầu user cấu hình path.
 
 ## 1. Mục tiêu sản phẩm

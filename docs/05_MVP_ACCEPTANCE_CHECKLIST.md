@@ -1,4 +1,6 @@
-# MVP Acceptance Checklist
+# MVP Acceptance Checklist: Image Optimizer
+
+> Quyết định boundary mới: xem `09_FEATURE_BOUNDARY_AND_AUTOMATION_DECISION.md`. Checklist này áp dụng cho Feature 01 Image Optimizer. Gộp file và nén PDF không còn là tiêu chí pass trực tiếp của Feature 01.
 
 ## 0. WinUI/core alignment
 
@@ -47,30 +49,33 @@
 - [ ] Preview ảnh đang chọn.
 - [ ] Có thể tạo lại AVIF với cấu hình khác.
 
-## 5. Combine PDF
+## 5. Handoff sang feature gộp/nén
 
-- [ ] Combine từ ảnh đã nén.
+- [ ] Có top action `Gộp file` khi có file ảnh hợp lệ hoặc output AVIF.
+- [ ] `Gộp file` gửi batch sang `File Merge / PDF Builder`.
+- [ ] Có top action `Gộp và nén` khi đã có output AVIF.
+- [ ] `Gộp và nén` chạy automation: Image Optimizer -> File Merge / PDF Builder -> PDF Compressor.
+- [ ] Automation không làm mất state của Image Optimizer; người dùng quay lại vẫn thấy list ảnh và có thể nén lại.
+- [ ] Handoff dùng context rõ ràng, không gọi UI của feature khác trực tiếp.
+- [ ] Không đặt một nút `Nén` nhưng phía sau vừa gộp vừa nén PDF.
+
+## 6. Scope chuyển sang feature khác
+
+Các mục dưới đây không còn là tiêu chí pass của Image Optimizer, nhưng phải được giữ làm acceptance cho `File Merge / PDF Builder` và `PDF Compressor`:
+
+- [ ] Gộp từ ảnh đã nén.
 - [ ] Không ép A4 mặc định.
 - [ ] Page mode mặc định theo kích thước ảnh.
-- [ ] Ảnh dọc ra trang dọc.
-- [ ] Ảnh ngang ra trang ngang.
+- [ ] Ảnh dọc ra trang dọc, ảnh ngang ra trang ngang.
 - [ ] RGB là mặc định.
 - [ ] Gray không bật mặc định.
 - [ ] Bật Gray phải confirm.
 - [ ] PDF giữ màu con dấu/chữ ký/logo.
 - [ ] PDF q stepper-slider hoạt động.
-- [ ] q giảm thì đẹp hơn/nặng hơn.
-- [ ] q tăng thì nhẹ hơn/mềm hơn.
-
-## 6. PDF versions
-
-- [ ] Mỗi lần tạo PDF thêm một item trong list.
-- [ ] List hiển thị q, color mode, page mode, dung lượng.
+- [ ] Mỗi lần tạo/nén PDF thêm một version.
 - [ ] Tạo được q12, q14, q15.
 - [ ] Mở từng PDF version được.
 - [ ] Đặt một bản làm final được.
-- [ ] Final PDF hiển thị rõ.
-- [ ] Gray version có warning badge.
 
 ## 7. UI state
 
@@ -98,12 +103,9 @@
 - [ ] 10 ảnh JPG gốc được scan đúng.
 - [ ] 10 ảnh AVIF được tạo/đọc đúng.
 - [ ] Tổng AVIF sau nén nằm gần mốc đã kiểm chứng khoảng 1.36 MiB.
-- [ ] PDF RGB q12 nằm gần mốc đã kiểm chứng khoảng 1.40 MiB.
-- [ ] PDF RGB q13 nằm gần mốc đã kiểm chứng khoảng 1.33 MiB.
-- [ ] PDF RGB q15 nằm gần mốc đã kiểm chứng khoảng 1.21 MiB.
-- [ ] Không mất con dấu màu.
-- [ ] Không bị đặt vào trang A4 ngoài ý muốn.
-- [ ] Có thể chỉnh q nhiều lần đến khi ưng ý.
+- [ ] Handoff sang feature gộp/nén dùng được với folder `Sao ke GD\compressed-avif`.
+
+Các mốc PDF RGB q12/q13/q15 thuộc checklist của `File Merge / PDF Builder` và `PDF Compressor`.
 
 ## 10. Tiêu chí pass MVP
 
@@ -112,10 +114,9 @@ MVP pass khi toàn bộ mục bắt buộc sau đạt:
 - [ ] Chọn folder.
 - [ ] Convert AVIF.
 - [ ] Review dung lượng.
-- [ ] Combine PDF RGB.
-- [ ] Chỉnh q.
-- [ ] Tạo nhiều PDF versions.
-- [ ] Chọn final.
+- [ ] Nén lại ảnh với setting khác được.
+- [ ] Có handoff `Gộp file`.
+- [ ] Có handoff/automation `Gộp và nén`.
 - [ ] Không sửa file gốc.
 - [ ] UI đủ state.
 - [ ] Test thực tế với `Sao ke GD` đạt.
