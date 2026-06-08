@@ -57,6 +57,8 @@ public partial class App : Application
         services.AddSingleton<AppStatusService>();
         services.AddSingleton<FileScanService>();
         services.AddSingleton<ImageConvertService>();
+        services.AddSingleton<OfficeConvertService>();
+        services.AddSingleton<PdfRenderService>();
         services.AddSingleton<PdfBuilderService>();
         services.AddSingleton<IFeatureHandoffService, FeatureHandoffService>();
         services.AddSingleton<IFilePickerService, FilePickerService>();

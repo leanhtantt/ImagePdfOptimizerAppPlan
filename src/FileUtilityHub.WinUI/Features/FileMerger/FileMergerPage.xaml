@@ -118,25 +118,83 @@
                     <StackPanel Spacing="24">
                         <!-- Header -->
                         <StackPanel Spacing="4">
-                            <TextBlock Text="Thiết lập gộp PDF" Style="{ThemeResource TitleTextBlockStyle}"/>
-                            <TextBlock Text="Cấu hình chế độ trang, chất lượng và định dạng đầu ra." Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap"/>
+                            <TextBlock Text="Thiết lập gộp Tài liệu" Style="{ThemeResource TitleTextBlockStyle}"/>
+                            <TextBlock Text="Cấu hình chế độ render, chất lượng và định dạng đầu ra." Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap"/>
                         </StackPanel>
 
+                        <!-- IMAGE ONLY PANEL -->
+                        <StackPanel Spacing="24" Visibility="{x:Bind ViewModel.IsImageOnly, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}">
+                            <!-- Card: Page Mode -->
+                            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="16">
+                                <StackPanel Spacing="8">
+                                    <TextBlock Text="Chế độ trang" Style="{ThemeResource BodyStrongTextBlockStyle}"/>
+                                    <TextBlock Text="Kích thước trang PDF cho mỗi ảnh." Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap"/>
+                                    <ComboBox SelectedIndex="{x:Bind ViewModel.PageModeIndex, Mode=TwoWay}" HorizontalAlignment="Stretch">
+                                        <ComboBoxItem Content="Theo kích thước ảnh" />
+                                        <ComboBoxItem Content="A4 phủ đầy trang" />
+                                        <ComboBoxItem Content="A4 vừa khung (giữ tỷ lệ)" />
+                                    </ComboBox>
+                                </StackPanel>
+                            </Border>
 
-                        <!-- Card 2: Quality -->
-                        <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="16">
-                            <StackPanel Spacing="8">
-                                <TextBlock Text="Chất lượng JPEG" Style="{ThemeResource BodyStrongTextBlockStyle}"/>
-                                <TextBlock Text="Ảnh được convert sang JPEG trung gian trước khi nhúng vào PDF." Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap"/>
-                                <ComboBox SelectedIndex="{x:Bind ViewModel.QualityIndex, Mode=TwoWay}" HorizontalAlignment="Stretch">
-                                    <ComboBoxItem Content="Cao (sắc nét, PDF lớn hơn)" />
-                                    <ComboBoxItem Content="Vừa (cân bằng)" />
-                                    <ComboBoxItem Content="Nhẹ (PDF nhỏ nhất)" />
-                                </ComboBox>
-                            </StackPanel>
-                        </Border>
+                            <!-- Card: JPEG QScale -->
+                            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="16">
+                                <StackPanel Spacing="8">
+                                    <TextBlock Text="JPEG QScale ghi đè (0-31)" Style="{ThemeResource BodyStrongTextBlockStyle}"/>
+                                    <TextBlock Text="Giá trị 0 = tự động theo Chất lượng đã chọn. Giá trị thấp = chất lượng cao hơn." Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap"/>
+                                    <shared:QualityStepperSlider
+                                        Value="{x:Bind ViewModel.JpegQScale, Mode=TwoWay}"
+                                        Minimum="0" Maximum="31" StepFrequency="1"
+                                        LowLabel="Auto" HighLabel="Nén mạnh" />
+                                </StackPanel>
+                            </Border>
 
-                        <!-- Card 3: Color Mode -->
+                            <!-- Card: Resolution -->
+                            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="16">
+                                <StackPanel Spacing="8">
+                                    <TextBlock Text="Resize cạnh dài" Style="{ThemeResource BodyStrongTextBlockStyle}"/>
+                                    <TextBlock Text="Thu nhỏ ảnh trước khi nhúng vào PDF." Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap"/>
+                                    <ComboBox SelectedIndex="{x:Bind ViewModel.ResolutionIndex, Mode=TwoWay}" HorizontalAlignment="Stretch">
+                                        <ComboBoxItem Content="Giữ nguyên gốc" />
+                                        <ComboBoxItem Content="1920 px" />
+                                        <ComboBoxItem Content="2048 px" />
+                                        <ComboBoxItem Content="2560 px" />
+                                    </ComboBox>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+
+                        <!-- SCANNED DOCUMENTS PANEL (PDF/OFFICE) -->
+                        <StackPanel Spacing="24" Visibility="{x:Bind ViewModel.IsScannedDocument, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}">
+                            <InfoBar Severity="Informational" IsOpen="True" IsClosable="False"
+                                     Title="Chế độ Scanned PDF"
+                                     Message="Tài liệu sẽ được rasterize thành hình ảnh để tránh lỗi font và layout." />
+
+                            <!-- Card: DPI -->
+                            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="16">
+                                <StackPanel Spacing="8">
+                                    <TextBlock Text="Độ phân giải (DPI)" Style="{ThemeResource BodyStrongTextBlockStyle}"/>
+                                    <TextBlock Text="DPI cao hơn = sắc nét hơn nhưng file nặng hơn." Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap"/>
+                                    <Slider Value="{x:Bind ViewModel.Dpi, Mode=TwoWay}"
+                                            Minimum="10" Maximum="80" StepFrequency="1"
+                                            TickFrequency="10" TickPlacement="Outside" />
+                                    <TextBlock Text="{x:Bind ViewModel.Dpi, Mode=OneWay}" HorizontalAlignment="Right" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Card: JPEG Quality -->
+                            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="16">
+                                <StackPanel Spacing="8">
+                                    <TextBlock Text="Chất lượng JPEG (40-95)" Style="{ThemeResource BodyStrongTextBlockStyle}"/>
+                                    <Slider Value="{x:Bind ViewModel.JpegQuality, Mode=TwoWay}"
+                                            Minimum="40" Maximum="95" StepFrequency="1"
+                                            TickFrequency="5" TickPlacement="Outside" />
+                                    <TextBlock Text="{x:Bind ViewModel.JpegQuality, Mode=OneWay}" HorizontalAlignment="Right" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+
+                        <!-- COMMON SETTINGS (Color Mode & Output filename) -->
                         <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="16">
                             <StackPanel Spacing="8">
                                 <TextBlock Text="Chế độ màu" Style="{ThemeResource BodyStrongTextBlockStyle}"/>
@@ -147,32 +205,13 @@
                             </StackPanel>
                         </Border>
 
-                        <!-- Card 4: JPEG QScale using QualityStepperSlider -->
                         <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="16">
                             <StackPanel Spacing="8">
-                                <TextBlock Text="JPEG QScale ghi đè (0-31)" Style="{ThemeResource BodyStrongTextBlockStyle}"/>
-                                <TextBlock Text="Giá trị 0 = tự động theo Chất lượng đã chọn. Giá trị thấp = chất lượng cao hơn." Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap"/>
-                                <shared:QualityStepperSlider
-                                    Value="{x:Bind ViewModel.JpegQScale, Mode=TwoWay}"
-                                    Minimum="0" Maximum="31" StepFrequency="1"
-                                    LowLabel="Auto" HighLabel="Nén mạnh" />
+                                <TextBlock Text="Tên file PDF" Style="{ThemeResource BodyStrongTextBlockStyle}"/>
+                                <TextBox Text="{x:Bind ViewModel.OutputFileName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                         PlaceholderText="combined-documents.pdf" />
                             </StackPanel>
                         </Border>
-
-                        <!-- Card 5: Resolution -->
-                        <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="16">
-                            <StackPanel Spacing="8">
-                                <TextBlock Text="Resize cạnh dài" Style="{ThemeResource BodyStrongTextBlockStyle}"/>
-                                <TextBlock Text="Thu nhỏ ảnh trước khi nhúng vào PDF." Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap"/>
-                                <ComboBox SelectedIndex="{x:Bind ViewModel.ResolutionIndex, Mode=TwoWay}" HorizontalAlignment="Stretch">
-                                    <ComboBoxItem Content="Giữ nguyên gốc" />
-                                    <ComboBoxItem Content="1920 px" />
-                                    <ComboBoxItem Content="2048 px" />
-                                    <ComboBoxItem Content="2560 px" />
-                                </ComboBox>
-                            </StackPanel>
-                        </Border>
-
 
                         <!-- Main Action -->
                         <Grid Margin="0,12,0,0">

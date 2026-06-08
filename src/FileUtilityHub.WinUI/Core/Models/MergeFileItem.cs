@@ -16,7 +16,7 @@ public sealed class MergeFileItem : INotifyPropertyChanged
     private int _orderIndex;
     private int? _imageWidth;
     private int? _imageHeight;
-    private string? _preparedJpegPath;
+    private int? _pageCount;
     private ProcessingStatus _status = ProcessingStatus.Pending;
     private string? _errorMessage;
 
@@ -60,11 +60,13 @@ public sealed class MergeFileItem : INotifyPropertyChanged
         set { _imageHeight = value; OnPropertyChanged(); OnPropertyChanged(nameof(DimensionDisplay)); }
     }
 
-    public string? PreparedJpegPath
+    public int? PageCount
     {
-        get => _preparedJpegPath;
-        set { _preparedJpegPath = value; OnPropertyChanged(); }
+        get => _pageCount;
+        set { _pageCount = value; OnPropertyChanged(); }
     }
+
+    public System.Collections.Generic.List<string> PreparedJpegPaths { get; } = new();
 
     public ProcessingStatus Status
     {

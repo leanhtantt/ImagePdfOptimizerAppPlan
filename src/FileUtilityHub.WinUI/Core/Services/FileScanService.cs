@@ -8,7 +8,7 @@ namespace FileUtilityHub_WinUI.Core.Services;
 
 public class FileScanService
 {
-    private readonly string[] _supportedExtensions = { ".jpg", ".jpeg", ".png", ".avif", ".bmp", ".tif", ".tiff" };
+    private readonly string[] _supportedExtensions = { ".jpg", ".jpeg", ".png", ".webp", ".avif", ".bmp", ".tif", ".tiff", ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx" };
 
     public (List<ImageItem> ValidFiles, List<string> InvalidFiles) ScanDirectory(string folderPath)
     {

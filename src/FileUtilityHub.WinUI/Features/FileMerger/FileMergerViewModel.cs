@@ -25,7 +25,7 @@ public partial class FileMergerViewModel : ObservableObject
     private CancellationTokenSource? _cancellationTokenSource;
 
     private static readonly string[] SupportedExtensions =
-        [".jpg", ".jpeg", ".png", ".webp", ".avif", ".bmp", ".tif", ".tiff"];
+        [".jpg", ".jpeg", ".png", ".webp", ".avif", ".bmp", ".tif", ".tiff", ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx"];
 
     // --- Observable Properties ---
 
@@ -38,12 +38,17 @@ public partial class FileMergerViewModel : ObservableObject
     [ObservableProperty]
     private bool _hasFiles = false;
 
-    // Settings — bind to UI
     [ObservableProperty]
-    private int _pageModeIndex = 0; // 0=ImageSize, 1=A4Full, 2=A4Fit
+    [NotifyPropertyChangedFor(nameof(IsImageOnly))]
+    [NotifyPropertyChangedFor(nameof(IsScannedDocument))]
+    private MergeInputProfile _currentProfile = MergeInputProfile.ImageOnly;
+
+    public bool IsImageOnly => CurrentProfile == MergeInputProfile.ImageOnly;
+    public bool IsScannedDocument => CurrentProfile == MergeInputProfile.ScannedDocuments;
+
 
     [ObservableProperty]
-    private int _qualityIndex = 1; // 0=High, 1=Small, 2=Tiny
+    private int _pageModeIndex = 0; // 0=ImageSize, 1=A4Full, 2=A4Fit
 
     [ObservableProperty]
     private int _colorModeIndex = 0; // 0=RGB, 1=Grayscale
@@ -55,7 +60,13 @@ public partial class FileMergerViewModel : ObservableObject
     private int _resolutionIndex = 0; // 0=Keep, 1=1920, 2=2048, 3=2560
 
     [ObservableProperty]
-    private string _outputFileName = "combined-images.pdf";
+    private int _dpi = 80; // For PDF/Office
+
+    [ObservableProperty]
+    private int _jpegQuality = 85; // For PDF/Office
+
+    [ObservableProperty]
+    private string _outputFileName = "combined-documents.pdf";
 
     // Warning state
     [ObservableProperty]
@@ -86,6 +97,8 @@ public partial class FileMergerViewModel : ObservableObject
         _filePickerService = filePickerService;
         _notificationService = notificationService;
         _handoffService = handoffService;
+
+        MergeItems.CollectionChanged += (s, e) => UpdateProfile();
     }
 
     /// <summary>
@@ -155,14 +168,17 @@ public partial class FileMergerViewModel : ObservableObject
             int order = 1;
             foreach (var item in result.ValidFiles)
             {
-                MergeItems.Add(new MergeFileItem
+                if (SupportedExtensions.Contains("." + item.Format))
                 {
-                    FileName = item.FileName,
-                    SourcePath = item.SourcePath,
-                    Format = item.Format,
-                    OriginalSizeBytes = item.OriginalSizeBytes,
-                    OrderIndex = order++
-                });
+                    MergeItems.Add(new MergeFileItem
+                    {
+                        FileName = item.FileName,
+                        SourcePath = item.SourcePath,
+                        Format = item.Format,
+                        OriginalSizeBytes = item.OriginalSizeBytes,
+                        OrderIndex = order++
+                    });
+                }
             }
             UpdateStatus();
         }
@@ -234,18 +250,19 @@ public partial class FileMergerViewModel : ObservableObject
         var tempDir = Path.Combine(outputDir, $"_pdf_temp_{Guid.NewGuid():N}");
         Directory.CreateDirectory(tempDir);
 
-        _statusService.StartProcessing("Đang chuẩn bị ảnh...", MergeItems.Count);
+        _statusService.StartProcessing("Đang xử lý tài liệu...", MergeItems.Count);
 
         try
         {
-            // Step 1: Prepare each image (convert to JPEG via FFmpeg)
+            // Step 1: Prepare each item (convert to JPEGs)
             foreach (var item in MergeItems)
             {
                 item.Status = ProcessingStatus.Pending;
                 item.ErrorMessage = null;
-                item.PreparedJpegPath = null;
+                item.PreparedJpegPaths.Clear();
                 item.ImageWidth = null;
                 item.ImageHeight = null;
+                item.PageCount = null;
             }
 
             int successCount = 0;
@@ -259,35 +276,35 @@ public partial class FileMergerViewModel : ObservableObject
 
                 var item = MergeItems[i];
                 item.Status = ProcessingStatus.Processing;
-                _statusService.ReportProgress(i, MergeItems.Count, $"Chuẩn bị: {item.FileName}");
+                _statusService.ReportProgress(i, MergeItems.Count, $"Xử lý: {item.FileName}");
 
-                var success = await _pdfBuilderService.PrepareImageAsync(item, config, tempDir, token);
+                var success = await _pdfBuilderService.PrepareItemAsync(item, config, tempDir, token);
                 if (success) successCount++;
 
-                _statusService.ReportProgress(i + 1, MergeItems.Count, $"Chuẩn bị: {item.FileName}");
+                _statusService.ReportProgress(i + 1, MergeItems.Count, $"Xử lý xong: {item.FileName}");
             }
 
             if (token.IsCancellationRequested) return;
 
             // Step 2: Build PDF from prepared images
             var preparedItems = MergeItems
-                .Where(i => i.Status == ProcessingStatus.Success && i.PreparedJpegPath != null)
+                .Where(i => i.Status == ProcessingStatus.Success && i.PreparedJpegPaths.Count > 0)
                 .OrderBy(i => i.OrderIndex)
                 .ToList();
 
             if (preparedItems.Count == 0)
             {
                 HasActiveWarning = true;
-                WarningTitle = "Không có ảnh nào được chuẩn bị thành công";
-                WarningMessage = "Kiểm tra lại file input hoặc FFmpeg.";
+                WarningTitle = "Không có tài liệu nào được chuẩn bị thành công";
+                WarningMessage = "Kiểm tra lại file input hoặc môi trường Python.";
                 WarningSeverity = WarningSeverityLevel.Error;
                 return;
             }
 
-            _statusService.ReportProgress(MergeItems.Count, MergeItems.Count, "Đang ghi file PDF...");
+            _statusService.ReportProgress(MergeItems.Count, MergeItems.Count, "Đang xuất file PDF...");
             _pdfBuilderService.BuildPdf(outputPath, preparedItems, config);
 
-            _statusService.StopProcessing($"Đã gộp {preparedItems.Count} ảnh thành PDF!");
+            _statusService.StopProcessing($"Đã gộp thành công!");
 
             // Show results
             var pdfSize = new FileInfo(outputPath).Length;
@@ -295,7 +312,7 @@ public partial class FileMergerViewModel : ObservableObject
 
             _notificationService.ShowToast(
                 "Gộp PDF hoàn tất",
-                $"{preparedItems.Count} ảnh → {config.OutputFileName} ({pdfSizeMb:F2} MB)",
+                $"{preparedItems.Count} file → {config.OutputFileName} ({pdfSizeMb:F2} MB)",
                 "ms-appx:///Assets/Square44x44Logo.scale-200.png");
 
             // Handle errors
@@ -333,7 +350,6 @@ public partial class FileMergerViewModel : ObservableObject
 
     private bool CanMerge() => !IsMerging && MergeItems.Count > 0;
 
-    // Drag & drop handler for DropZoneControl
     [RelayCommand]
     private void HandleDrop(object parameter)
     {
@@ -348,14 +364,17 @@ public partial class FileMergerViewModel : ObservableObject
                     var result = _scanService.ScanDirectory(folder.Path);
                     foreach (var item in result.ValidFiles)
                     {
-                        MergeItems.Add(new MergeFileItem
+                        if (SupportedExtensions.Contains("." + item.Format))
                         {
-                            FileName = item.FileName,
-                            SourcePath = item.SourcePath,
-                            Format = item.Format,
-                            OriginalSizeBytes = item.OriginalSizeBytes,
-                            OrderIndex = nextOrder++
-                        });
+                            MergeItems.Add(new MergeFileItem
+                            {
+                                FileName = item.FileName,
+                                SourcePath = item.SourcePath,
+                                Format = item.Format,
+                                OriginalSizeBytes = item.OriginalSizeBytes,
+                                OrderIndex = nextOrder++
+                            });
+                        }
                     }
                 }
                 else if (storageItem is StorageFile file)
@@ -383,17 +402,12 @@ public partial class FileMergerViewModel : ObservableObject
     {
         return new PdfMergeConfig
         {
+            InputProfile = CurrentProfile,
             PageMode = PageModeIndex switch
             {
                 1 => PdfPageMode.A4Full,
                 2 => PdfPageMode.A4Fit,
                 _ => PdfPageMode.ImageSize
-            },
-            Quality = QualityIndex switch
-            {
-                0 => PdfJpegQuality.High,
-                2 => PdfJpegQuality.Tiny,
-                _ => PdfJpegQuality.Small
             },
             ColorMode = ColorModeIndex == 1 ? PdfColorMode.Grayscale : PdfColorMode.Rgb,
             JpegQScale = (int)JpegQScale,
@@ -404,8 +418,10 @@ public partial class FileMergerViewModel : ObservableObject
                 3 => 2560,
                 _ => 0
             },
+            Dpi = Dpi,
+            JpegQuality = JpegQuality,
             OutputFileName = string.IsNullOrWhiteSpace(OutputFileName)
-                ? "combined-images.pdf"
+                ? "combined-documents.pdf"
                 : OutputFileName
         };
     }
@@ -433,12 +449,21 @@ public partial class FileMergerViewModel : ObservableObject
         }
     }
 
+    private void UpdateProfile()
+    {
+        bool hasOfficeOrPdf = MergeItems.Any(i =>
+            i.Format is "pdf" or "doc" or "docx" or "xls" or "xlsx" or "ppt" or "pptx");
+
+        CurrentProfile = hasOfficeOrPdf ? MergeInputProfile.ScannedDocuments : MergeInputProfile.ImageOnly;
+    }
+
     private void UpdateStatus()
     {
         HasFiles = MergeItems.Count > 0;
         ReindexItems();
+        UpdateProfile();
         _statusService.CurrentItemCount = MergeItems.Count;
-        _statusService.StatusMessage = $"Đã tải {MergeItems.Count} ảnh vào danh sách gộp.";
+        _statusService.StatusMessage = $"Đã tải {MergeItems.Count} tài liệu vào danh sách.";
         NotifyCommandsCanExecuteChanged();
     }
 

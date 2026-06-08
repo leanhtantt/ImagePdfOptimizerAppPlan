@@ -16,21 +16,6 @@ public enum PdfPageMode
     A4Fit
 }
 
-/// <summary>
-/// JPEG quality preset for intermediate images.
-/// Maps to PowerShell script's -Quality parameter.
-/// </summary>
-public enum PdfJpegQuality
-{
-    /// <summary>qscale=3, clear text, larger PDF.</summary>
-    High,
-
-    /// <summary>qscale=6, balanced quality/size.</summary>
-    Small,
-
-    /// <summary>qscale=9, smallest PDF, softer image.</summary>
-    Tiny
-}
 
 /// <summary>
 /// Color mode for PDF images.
@@ -42,21 +27,42 @@ public enum PdfColorMode
     Grayscale
 }
 
+public enum MergeInputProfile
+{
+    ImageOnly,
+    ScannedDocuments
+}
+
 /// <summary>
 /// Configuration for the image-to-PDF merge operation.
-/// Maps 1:1 with PowerShell script parameters.
 /// </summary>
 public sealed class PdfMergeConfig
 {
+    public MergeInputProfile InputProfile { get; set; } = MergeInputProfile.ImageOnly;
+
     public PdfPageMode PageMode { get; set; } = PdfPageMode.ImageSize;
-    public PdfJpegQuality Quality { get; set; } = PdfJpegQuality.Small;
     public PdfColorMode ColorMode { get; set; } = PdfColorMode.Rgb;
 
     /// <summary>
-    /// JPEG qscale override (0-31). 0 = use preset from Quality.
-    /// Maps to PowerShell -JpegQ parameter.
+    /// ScannedDocuments profile: DPI setting for rendering (100-400)
+    /// </summary>
+    public int Dpi { get; set; } = 200;
+
+    /// <summary>
+    /// ScannedDocuments profile: JPEG Quality (40-95)
+    /// </summary>
+    public int JpegQuality { get; set; } = 85;
+
+    /// <summary>
+    /// ImageOnly profile: JPEG qscale override (0-31).
+    /// Maps to FFmpeg -qscale:v
     /// </summary>
     public int JpegQScale { get; set; } = 0;
+
+    /// <summary>
+    /// Gets the effective qscale value, resolving auto (0) to preset.
+    /// </summary>
+    public int EffectiveQScale => JpegQScale > 0 ? JpegQScale : 6;
 
     /// <summary>
     /// Max long edge in pixels. 0 = keep original dimensions.
@@ -69,18 +75,6 @@ public sealed class PdfMergeConfig
     /// </summary>
     public string OutputFileName { get; set; } = "combined-images.pdf";
 
-    /// <summary>
-    /// Gets the effective qscale value, resolving auto (0) to preset.
-    /// </summary>
-    public int EffectiveQScale => JpegQScale > 0
-        ? JpegQScale
-        : Quality switch
-        {
-            PdfJpegQuality.High => 3,
-            PdfJpegQuality.Small => 6,
-            PdfJpegQuality.Tiny => 9,
-            _ => 6
-        };
 
     /// <summary>
     /// Gets the FFmpeg pixel format string.

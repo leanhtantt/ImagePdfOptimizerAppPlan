@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -11,66 +12,123 @@ namespace FileUtilityHub_WinUI.Core.Services;
 
 /// <summary>
 /// Builds a PDF from prepared JPEG images using raw PDF structure.
-/// Ported from PowerShell New-ImagePdf function.
-/// No external PDF library required.
+/// Orchestrates conversion of Images, PDFs, and Office files.
 /// </summary>
 public class PdfBuilderService
 {
     private readonly FfmpegRunner _ffmpegRunner;
+    private readonly OfficeConvertService _officeConvertService;
+    private readonly PdfRenderService _pdfRenderService;
 
     // A4 dimensions in PDF points (1 point = 1/72 inch)
     private const double A4Width = 595.28;
     private const double A4Height = 841.89;
 
-    public PdfBuilderService(FfmpegRunner ffmpegRunner)
+    public PdfBuilderService(
+        FfmpegRunner ffmpegRunner,
+        OfficeConvertService officeConvertService,
+        PdfRenderService pdfRenderService)
     {
         _ffmpegRunner = ffmpegRunner;
+        _officeConvertService = officeConvertService;
+        _pdfRenderService = pdfRenderService;
     }
 
     /// <summary>
-    /// Prepares a single image by converting it to a temporary JPEG via FFmpeg.
-    /// Mirrors PowerShell Convert-ToTempJpeg.
+    /// Prepares an item (Image, PDF, Office) by generating intermediate JPEGs.
     /// </summary>
-    public async Task<bool> PrepareImageAsync(
+    public async Task<bool> PrepareItemAsync(
         MergeFileItem item, PdfMergeConfig config, string tempDir, CancellationToken ct)
     {
         if (ct.IsCancellationRequested) return false;
 
-        var tempJpgPath = Path.Combine(tempDir, $"{item.OrderIndex:0000}.jpg");
+        item.PreparedJpegPaths.Clear();
 
-        var args = FfmpegCommandBuilder.BuildJpegPrepareArgs(
-            item.SourcePath,
-            tempJpgPath,
-            config.EffectiveQScale,
-            config.MaxLongEdge,
-            config.PixelFormat);
+        try
+        {
+            var ext = item.Format.ToLowerInvariant();
+            bool isImage = ext is "jpg" or "jpeg" or "png" or "webp" or "avif" or "bmp" or "tif" or "tiff" or "heic";
+            bool isPdf = ext is "pdf";
+            bool isOffice = ext is "doc" or "docx" or "xls" or "xlsx" or "ppt" or "pptx";
 
-        var success = await _ffmpegRunner.RunCommandAsync(args);
+            if (isImage)
+            {
+                var tempJpgPath = Path.Combine(tempDir, $"{item.OrderIndex:0000}_{Guid.NewGuid():N}.jpg");
 
-        if (!success || !File.Exists(tempJpgPath))
+                var args = FfmpegCommandBuilder.BuildJpegPrepareArgs(
+                    item.SourcePath,
+                    tempJpgPath,
+                    config.EffectiveQScale,
+                    config.MaxLongEdge,
+                    config.PixelFormat);
+
+                var success = await _ffmpegRunner.RunCommandAsync(args);
+
+                if (!success || !File.Exists(tempJpgPath))
+                {
+                    item.Status = ProcessingStatus.Error;
+                    item.ErrorMessage = "FFmpeg failed to prepare image";
+                    return false;
+                }
+
+                item.PreparedJpegPaths.Add(tempJpgPath);
+                item.PageCount = 1;
+            }
+            else if (isPdf || isOffice)
+            {
+                string pdfToRender = item.SourcePath;
+
+                if (isOffice)
+                {
+                    // Convert Office to Temp PDF first
+                    pdfToRender = await _officeConvertService.ConvertToPdfAsync(item.SourcePath, tempDir, ct);
+                }
+
+                // Render PDF to JPEGs
+                bool grayscale = config.ColorMode == PdfColorMode.Grayscale;
+                var jpegPaths = await _pdfRenderService.RenderPdfToJpegsAsync(
+                    pdfToRender, tempDir, config.Dpi, config.JpegQuality, grayscale, ct);
+
+                if (jpegPaths.Count == 0)
+                {
+                    item.Status = ProcessingStatus.Error;
+                    item.ErrorMessage = "No pages could be rendered from the document.";
+                    return false;
+                }
+
+                item.PreparedJpegPaths.AddRange(jpegPaths);
+                item.PageCount = jpegPaths.Count;
+            }
+            else
+            {
+                item.Status = ProcessingStatus.Error;
+                item.ErrorMessage = $"Unsupported format: {ext}";
+                return false;
+            }
+
+            // Successfully got at least one JPEG
+            item.Status = ProcessingStatus.Success;
+            return true;
+        }
+        catch (Exception ex)
         {
             item.Status = ProcessingStatus.Error;
-            item.ErrorMessage = "FFmpeg failed to prepare image";
+            item.ErrorMessage = ex.Message;
             return false;
         }
-
-        // Read JPEG dimensions from file header
-        var (width, height) = ReadJpegDimensions(tempJpgPath);
-        item.PreparedJpegPath = tempJpgPath;
-        item.ImageWidth = width;
-        item.ImageHeight = height;
-        item.Status = ProcessingStatus.Success;
-
-        return true;
     }
 
     /// <summary>
-    /// Builds a PDF file from a list of prepared JPEG images.
-    /// Ported from PowerShell New-ImagePdf function.
+    /// Builds a PDF file from all prepared JPEG images across all items.
     /// </summary>
     public void BuildPdf(string outputPath, IReadOnlyList<MergeFileItem> items, PdfMergeConfig config)
     {
-        var pageCount = items.Count;
+        // Flatten all JPEGs from all items
+        var allJpegPaths = items.SelectMany(i => i.PreparedJpegPaths).ToList();
+        var pageCount = allJpegPaths.Count;
+
+        if (pageCount == 0) return;
+
         var objectCount = 2 + (pageCount * 3); // catalog + pages + (page + image + content) per image
         var offsets = new long[objectCount + 1];
 
@@ -95,23 +153,25 @@ public class PdfBuilderService
         // Per-page objects
         for (int i = 0; i < pageCount; i++)
         {
-            var item = items[i];
+            var jpegPath = allJpegPaths[i];
+            var (imgWidth, imgHeight) = ReadJpegDimensions(jpegPath);
+
             var pageObj = 3 + (i * 3);
             var imageObj = pageObj + 1;
             var contentObj = pageObj + 2;
 
-            var imgWidth = (double)(item.ImageWidth ?? 100);
-            var imgHeight = (double)(item.ImageHeight ?? 100);
+            double widthD = imgWidth;
+            double heightD = imgHeight;
 
-            CalculatePageLayout(config.PageMode, imgWidth, imgHeight,
+            CalculatePageLayout(config.PageMode, widthD, heightD,
                 out var pageWidth, out var pageHeight,
                 out var drawWidth, out var drawHeight,
                 out var drawX, out var drawY);
 
             // Image XObject (embed raw JPEG bytes)
-            var jpegBytes = File.ReadAllBytes(item.PreparedJpegPath!);
+            var jpegBytes = File.ReadAllBytes(jpegPath);
             var colorSpace = config.ColorMode == PdfColorMode.Grayscale ? "/DeviceGray" : "/DeviceRGB";
-            var imageDict = $"<< /Type /XObject /Subtype /Image /Width {item.ImageWidth} /Height {item.ImageHeight} /ColorSpace {colorSpace} /BitsPerComponent 8 /Filter /DCTDecode /Length {jpegBytes.Length} >>";
+            var imageDict = $"<< /Type /XObject /Subtype /Image /Width {imgWidth} /Height {imgHeight} /ColorSpace {colorSpace} /BitsPerComponent 8 /Filter /DCTDecode /Length {jpegBytes.Length} >>";
             AddPdfStreamObject(stream, offsets, imageObj, imageDict, jpegBytes);
 
             // Content stream (position and scale the image)
@@ -140,7 +200,6 @@ public class PdfBuilderService
 
     /// <summary>
     /// Calculates page dimensions and image draw position based on PageMode.
-    /// Ported from PowerShell New-ImagePdf page layout logic.
     /// </summary>
     private static void CalculatePageLayout(
         PdfPageMode mode, double imgWidth, double imgHeight,
@@ -184,7 +243,6 @@ public class PdfBuilderService
 
     /// <summary>
     /// Reads JPEG dimensions from file header without loading full image.
-    /// Falls back to default if header cannot be parsed.
     /// </summary>
     private static (int width, int height) ReadJpegDimensions(string jpegPath)
     {
@@ -210,13 +268,9 @@ public class PdfBuilderService
                 // SOF markers (Start Of Frame) contain dimensions
                 if (marker >= 0xC0 && marker <= 0xCF && marker != 0xC4 && marker != 0xCC)
                 {
-                    // Read segment length (skip)
                     reader.ReadByte(); reader.ReadByte();
-                    // Read precision (skip)
                     reader.ReadByte();
-                    // Read height (big-endian 16-bit)
                     int height = (reader.ReadByte() << 8) | reader.ReadByte();
-                    // Read width (big-endian 16-bit)
                     int width = (reader.ReadByte() << 8) | reader.ReadByte();
 
                     if (width > 0 && height > 0)
@@ -224,7 +278,6 @@ public class PdfBuilderService
                 }
                 else if (marker != 0x00 && marker != 0x01 && !(marker >= 0xD0 && marker <= 0xD9))
                 {
-                    // Skip segment
                     int segLen = (reader.ReadByte() << 8) | reader.ReadByte();
                     if (segLen > 2)
                         fs.Seek(segLen - 2, SeekOrigin.Current);
