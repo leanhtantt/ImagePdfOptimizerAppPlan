@@ -21,6 +21,7 @@ public partial class ImageOptimizerViewModel : ObservableObject
     private readonly AppStatusService _statusService;
     private readonly IFeatureHandoffService _handoffService;
     private readonly IFilePickerService _filePickerService;
+    private readonly INotificationService _notificationService;
     private CancellationTokenSource? _cancellationTokenSource;
 
     private static readonly string[] SupportedExtensions = [".jpg", ".jpeg", ".png", ".bmp", ".tif", ".tiff", ".avif"];
@@ -63,13 +64,15 @@ public partial class ImageOptimizerViewModel : ObservableObject
         ImageConvertService convertService,
         AppStatusService statusService,
         IFeatureHandoffService handoffService,
-        IFilePickerService filePickerService)
+        IFilePickerService filePickerService,
+        INotificationService notificationService)
     {
         _scanService = scanService;
         _convertService = convertService;
         _statusService = statusService;
         _handoffService = handoffService;
         _filePickerService = filePickerService;
+        _notificationService = notificationService;
     }
 
     [RelayCommand]
@@ -216,6 +219,7 @@ public partial class ImageOptimizerViewModel : ObservableObject
         if (!token.IsCancellationRequested)
         {
             _statusService.StopProcessing("Đã hoàn tất nén AVIF toàn bộ ảnh trong danh sách!");
+            _notificationService.ShowToast("Nén ảnh hoàn tất", $"Đã xử lý xong {ImageItems.Count} ảnh.", "ms-appx:///Assets/Square44x44Logo.scale-200.png");
         }
 
         // Show warning using domain severity, not WinUI InfoBarSeverity

@@ -33,6 +33,14 @@ public partial class App : Application
     {
         InitializeComponent();
         Services = ConfigureServices();
+        try
+        {
+            Microsoft.Windows.AppNotifications.AppNotificationManager.Default.Register();
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Failed to register AppNotificationManager: {ex.Message}");
+        }
     }
 
     private static IServiceProvider ConfigureServices()
@@ -50,6 +58,7 @@ public partial class App : Application
         services.AddSingleton<ImageConvertService>();
         services.AddSingleton<IFeatureHandoffService, FeatureHandoffService>();
         services.AddSingleton<IFilePickerService, FilePickerService>();
+        services.AddSingleton<INotificationService, AppNotificationService>();
 
         // ViewModels
         services.AddTransient<ImageOptimizerViewModel>();
