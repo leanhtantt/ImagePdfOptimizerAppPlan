@@ -21,9 +21,7 @@
             <AppBarSeparator />
             <AppBarButton Icon="SelectAll" Label="Chọn tất cả" Command="{x:Bind ViewModel.SelectAllCommand}" IsEnabled="{x:Bind ViewModel.HasFile, Mode=OneWay}" />
             <AppBarButton Icon="ClearSelection" Label="Bỏ chọn" Command="{x:Bind ViewModel.ClearSelectionCommand}" IsEnabled="{x:Bind ViewModel.HasFile, Mode=OneWay}" />
-            <AppBarButton Icon="Filter" Label="Áp dụng trang" Command="{x:Bind ViewModel.ApplyPageRangeCommand}" IsEnabled="{x:Bind ViewModel.HasFile, Mode=OneWay}" />
             <AppBarSeparator />
-            <AppBarButton Icon="Save" Label="Nén bản mới" Command="{x:Bind ViewModel.CompressCommand}" IsEnabled="{x:Bind ViewModel.HasFile, Mode=OneWay}" />
             <AppBarButton Icon="Folder" Label="Mở thư mục" Command="{x:Bind ViewModel.OpenFolderCommand}" IsEnabled="{x:Bind ViewModel.HasFile, Mode=OneWay}" />
         </CommandBar>
 
@@ -160,6 +158,29 @@
                                 </ListView>
                             </StackPanel>
                         </Border>
+
+                        <!-- Main Action -->
+                        <Grid Margin="0,12,0,0">
+                            <!-- Start Button -->
+                            <Button Style="{ThemeResource AccentButtonStyle}" HorizontalAlignment="Stretch" Padding="12"
+                                    Command="{x:Bind ViewModel.CompressCommand}"
+                                    Visibility="{x:Bind ViewModel.IsProcessing, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}, ConverterParameter=Invert}">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <FontIcon Glyph="&#xE7C3;"/>
+                                    <TextBlock Text="Nén bản mới" />
+                                </StackPanel>
+                            </Button>
+
+                            <!-- Processing / Stop Button -->
+                            <Button HorizontalAlignment="Stretch" Padding="12"
+                                    Command="{x:Bind ViewModel.CancelCommand}"
+                                    Visibility="{x:Bind ViewModel.IsProcessing, Mode=OneWay}">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <ProgressRing IsActive="True" Width="16" Height="16" />
+                                    <TextBlock Text="Nhấn để dừng" />
+                                </StackPanel>
+                            </Button>
+                        </Grid>
                     </StackPanel>
                 </ScrollViewer>
             </Border>
