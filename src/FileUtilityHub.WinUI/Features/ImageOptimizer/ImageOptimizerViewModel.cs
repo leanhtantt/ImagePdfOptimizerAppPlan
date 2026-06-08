@@ -23,6 +23,7 @@ public partial class ImageOptimizerViewModel : ObservableObject
     private readonly IFilePickerService _filePickerService;
     private readonly INotificationService _notificationService;
     private CancellationTokenSource? _cancellationTokenSource;
+    private List<ImageItem> _selectedItems = new();
 
     private static readonly string[] SupportedExtensions = [".jpg", ".jpeg", ".png", ".bmp", ".tif", ".tiff", ".avif"];
 
@@ -114,7 +115,7 @@ public partial class ImageOptimizerViewModel : ObservableObject
     [RelayCommand]
     private void RemoveSelected(object selectedItems)
     {
-        if (selectedItems is System.Collections.IList list)
+        if (selectedItems is System.Collections.Generic.IEnumerable<object> list)
         {
             var itemsToRemove = list.Cast<ImageItem>().ToList();
             foreach (var item in itemsToRemove)
@@ -129,8 +130,14 @@ public partial class ImageOptimizerViewModel : ObservableObject
     private void ClearAll()
     {
         ImageItems.Clear();
+        _selectedItems.Clear();
         HasActiveWarning = false;
         UpdateStatus();
+    }
+
+    public void UpdateSelection(System.Collections.Generic.IList<object> selectedItems)
+    {
+        _selectedItems = selectedItems.Cast<ImageItem>().ToList();
     }
 
     [RelayCommand]
@@ -166,7 +173,8 @@ public partial class ImageOptimizerViewModel : ObservableObject
         _cancellationTokenSource = new CancellationTokenSource();
         var token = _cancellationTokenSource.Token;
 
-        _statusService.StartProcessing("Chuẩn bị nén...", ImageItems.Count);
+        var itemsToConvert = _selectedItems.Count > 0 ? _selectedItems : ImageItems.ToList();
+        _statusService.StartProcessing("Chuẩn bị nén...", itemsToConvert.Count);
 
         int res = ResolutionIndex switch
         {
@@ -184,11 +192,11 @@ public partial class ImageOptimizerViewModel : ObservableObject
 
         if (string.IsNullOrEmpty(CurrentFolder))
         {
-            CurrentFolder = Path.GetDirectoryName(ImageItems.First().SourcePath) ?? string.Empty;
+            CurrentFolder = Path.GetDirectoryName(itemsToConvert.First().SourcePath) ?? string.Empty;
         }
 
         // Reset state for multiple runs
-        foreach (var item in ImageItems)
+        foreach (var item in itemsToConvert)
         {
             if (item.Status == ProcessingStatus.Processing) continue;
             item.Status = ProcessingStatus.Pending;
@@ -198,7 +206,7 @@ public partial class ImageOptimizerViewModel : ObservableObject
             item.Warning = null;
         }
 
-        for (int i = 0; i < ImageItems.Count; i++)
+        for (int i = 0; i < itemsToConvert.Count; i++)
         {
             if (token.IsCancellationRequested)
             {
@@ -206,14 +214,14 @@ public partial class ImageOptimizerViewModel : ObservableObject
                 break;
             }
 
-            var item = ImageItems[i];
+            var item = itemsToConvert[i];
             item.Status = ProcessingStatus.Processing;
 
-            _statusService.ReportProgress(i, ImageItems.Count, $"Đang nén: {item.FileName}");
+            _statusService.ReportProgress(i, itemsToConvert.Count, $"Đang nén: {item.FileName}");
 
             await _convertService.ConvertToAvifAsync(item, config, CurrentFolder);
 
-            _statusService.ReportProgress(i + 1, ImageItems.Count, $"Đang nén: {item.FileName}");
+            _statusService.ReportProgress(i + 1, itemsToConvert.Count, $"Đang nén: {item.FileName}");
         }
 
         if (!token.IsCancellationRequested)
