@@ -36,6 +36,10 @@ public sealed partial class MainPage : Page
             {
                 ContentFrame.Navigate(typeof(Features.FileMerger.FileMergerPage));
             }
+            else if (navItemTag == "PdfCompressor")
+            {
+                ContentFrame.Navigate(typeof(Features.PdfCompressor.PdfCompressorPage));
+            }
             else
             {
                 ContentFrame.Navigate(typeof(PlaceholderPage), navItemTag);

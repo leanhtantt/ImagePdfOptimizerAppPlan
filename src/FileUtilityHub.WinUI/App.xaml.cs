@@ -60,6 +60,7 @@ public partial class App : Application
         services.AddSingleton<OfficeConvertService>();
         services.AddSingleton<PdfRenderService>();
         services.AddSingleton<PdfBuilderService>();
+        services.AddSingleton<PdfCompressorService>();
         services.AddSingleton<IFeatureHandoffService, FeatureHandoffService>();
         services.AddSingleton<IFilePickerService, FilePickerService>();
         services.AddSingleton<INotificationService, AppNotificationService>();
@@ -67,6 +68,7 @@ public partial class App : Application
         // ViewModels
         services.AddTransient<ImageOptimizerViewModel>();
         services.AddTransient<FileMergerViewModel>();
+        services.AddTransient<Features.PdfCompressor.PdfCompressorViewModel>();
 
         return services.BuildServiceProvider();
     }

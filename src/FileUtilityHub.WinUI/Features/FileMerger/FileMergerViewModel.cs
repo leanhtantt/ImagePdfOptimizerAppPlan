@@ -60,10 +60,10 @@ public partial class FileMergerViewModel : ObservableObject
     private int _resolutionIndex = 0; // 0=Keep, 1=1920, 2=2048, 3=2560
 
     [ObservableProperty]
-    private int _dpi = 80; // For PDF/Office
+    private int _dpi = 200; // For PDF/Office
 
     [ObservableProperty]
-    private int _jpegQuality = 85; // For PDF/Office
+    private int _jpegQuality = 80; // For PDF/Office
 
     [ObservableProperty]
     private string _outputFileName = "combined-documents.pdf";
