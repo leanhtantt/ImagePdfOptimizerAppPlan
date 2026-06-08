@@ -11,7 +11,7 @@ namespace FileUtilityHub_WinUI.Shell.Services;
 public class FeatureHandoffService : IFeatureHandoffService
 {
     // Store last context so target feature can read it
-    public FileBatchContext? PendingMergeContext { get; private set; }
+    public FileBatchContext? PendingMergeContext { get; internal set; }
     public bool HasPendingAutomation { get; private set; }
 
     public void NavigateToMerge(FileBatchContext context)
@@ -36,7 +36,7 @@ public class FeatureHandoffService : IFeatureHandoffService
         {
             if (mainPage.FindName("ContentFrame") is Microsoft.UI.Xaml.Controls.Frame contentFrame)
             {
-                contentFrame.Navigate(typeof(PlaceholderPage), moduleTag);
+                contentFrame.Navigate(typeof(Features.FileMerger.FileMergerPage), moduleTag);
             }
 
             if (mainPage.FindName("NavView") is Microsoft.UI.Xaml.Controls.NavigationView navView)

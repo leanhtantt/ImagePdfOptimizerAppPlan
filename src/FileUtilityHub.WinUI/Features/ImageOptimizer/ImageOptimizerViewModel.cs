@@ -138,6 +138,8 @@ public partial class ImageOptimizerViewModel : ObservableObject
     public void UpdateSelection(System.Collections.Generic.IList<object> selectedItems)
     {
         _selectedItems = selectedItems.Cast<ImageItem>().ToList();
+        HasSentToMerge = false;
+        NotifyCommandsCanExecuteChanged();
     }
 
     [RelayCommand]
@@ -257,34 +259,47 @@ public partial class ImageOptimizerViewModel : ObservableObject
 
     private bool CanConvertAvif() => !IsConverting && ImageItems.Count > 0;
 
+    [ObservableProperty]
+    private bool _hasSentToMerge = false;
+
     // Handoff commands (doc 09 section 4)
     [RelayCommand(CanExecute = nameof(CanSendToMerge))]
-    private void SendToMerge()
+    private void SendToMerge(object parameter)
     {
-        var context = BuildHandoffContext();
+        var context = BuildHandoffContext(parameter);
         _handoffService.NavigateToMerge(context);
+        HasSentToMerge = true;
+        NotifyCommandsCanExecuteChanged();
     }
 
-    private bool CanSendToMerge() => HasImages && !IsConverting;
+    private bool CanSendToMerge() => HasImages && !IsConverting && !HasSentToMerge;
 
     [RelayCommand(CanExecute = nameof(CanMergeAndCompress))]
-    private void MergeAndCompress()
+    private void MergeAndCompress(object parameter)
     {
-        var context = BuildHandoffContext();
+        var context = BuildHandoffContext(parameter);
         _handoffService.NavigateToMergeAndCompress(context);
+        HasSentToMerge = true;
+        NotifyCommandsCanExecuteChanged();
     }
 
-    private bool CanMergeAndCompress() => HasAvifOutput && !IsConverting;
+    private bool CanMergeAndCompress() => HasAvifOutput && !IsConverting && !HasSentToMerge;
 
-    private FileBatchContext BuildHandoffContext()
+    private FileBatchContext BuildHandoffContext(object? parameter)
     {
+        var selectedItems = parameter as System.Collections.Generic.IList<object>;
+        bool hasSelection = selectedItems != null && selectedItems.Count > 0;
+
+        var sourceItems = hasSelection && selectedItems != null
+            ? selectedItems.Cast<ImageItem>() 
+            : ImageItems;
+
         return new FileBatchContext
         {
             SourceFeature = "ImageOptimizer",
             SourceFolder = CurrentFolder,
-            Files = ImageItems
-                .Where(i => i.OutputPath != null)
-                .Select(i => i.OutputPath!)
+            Files = sourceItems
+                .Select(i => i.OutputPath ?? i.SourcePath)
                 .ToList(),
         };
     }
@@ -330,6 +345,7 @@ public partial class ImageOptimizerViewModel : ObservableObject
     {
         HasImages = ImageItems.Count > 0;
         HasAvifOutput = ImageItems.Any(i => i.Status == ProcessingStatus.Success && i.OutputPath != null);
+        HasSentToMerge = false;
         _statusService.CurrentItemCount = ImageItems.Count;
         _statusService.StatusMessage = $"Đã tải {ImageItems.Count} ảnh vào danh sách chờ.";
         NotifyCommandsCanExecuteChanged();

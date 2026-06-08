@@ -5,6 +5,7 @@ using FileUtilityHub_WinUI.Core.Services;
 using FileUtilityHub_WinUI.Infrastructure.Ffmpeg;
 using FileUtilityHub_WinUI.Infrastructure.FileSystem;
 using FileUtilityHub_WinUI.Features.ImageOptimizer;
+using FileUtilityHub_WinUI.Features.FileMerger;
 using FileUtilityHub_WinUI.Shell.Services;
 
 namespace FileUtilityHub_WinUI;
@@ -56,12 +57,14 @@ public partial class App : Application
         services.AddSingleton<AppStatusService>();
         services.AddSingleton<FileScanService>();
         services.AddSingleton<ImageConvertService>();
+        services.AddSingleton<PdfBuilderService>();
         services.AddSingleton<IFeatureHandoffService, FeatureHandoffService>();
         services.AddSingleton<IFilePickerService, FilePickerService>();
         services.AddSingleton<INotificationService, AppNotificationService>();
 
         // ViewModels
         services.AddTransient<ImageOptimizerViewModel>();
+        services.AddTransient<FileMergerViewModel>();
 
         return services.BuildServiceProvider();
     }

@@ -28,4 +28,32 @@ public static class FfmpegCommandBuilder
     {
         return $"-v error -select_streams v:0 -show_entries stream=width,height -of csv=p=0 \"{inputPath}\"";
     }
+
+    /// <summary>
+    /// Build JPEG preparation command for PDF merge.
+    /// Mirrors PowerShell Convert-ToTempJpeg: converts any image to JPEG
+    /// with quality, resize, and color mode applied.
+    /// </summary>
+    public static string BuildJpegPrepareArgs(
+        string inputPath, string outputPath,
+        int qscale, int maxLongEdge, string pixelFormat)
+    {
+        var filters = new System.Collections.Generic.List<string>();
+
+        if (maxLongEdge > 0)
+        {
+            filters.Add($"scale='if(gt(iw,ih),min(iw,{maxLongEdge}),-2)':'if(gt(iw,ih),-2,min(ih,{maxLongEdge}))'");
+        }
+
+        if (pixelFormat == "gray")
+        {
+            filters.Add("format=gray");
+        }
+
+        var vfArg = filters.Count > 0
+            ? $"-vf \"{string.Join(",", filters)}\" "
+            : "";
+
+        return $"-hide_banner -loglevel error -y -i \"{inputPath}\" {vfArg}-frames:v 1 -q:v {qscale} -pix_fmt {pixelFormat} \"{outputPath}\"";
+    }
 }
