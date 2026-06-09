@@ -27,14 +27,14 @@
 
             <!-- Handoff actions (doc 09 section 4) -->
             <AppBarButton Label="Gộp file" Command="{x:Bind ViewModel.SendToMergeCommand}"
-                          CommandParameter="{x:Bind FileList.SelectedItems, Mode=OneWay}"
+                          CommandParameter="{x:Bind FileList.SelectedItems, Mode=OneTime}"
                           ToolTipService.ToolTip="Gửi ảnh sang Gộp file / PDF Builder">
                 <AppBarButton.Icon>
                     <FontIcon Glyph="&#xE8B9;"/>
                 </AppBarButton.Icon>
             </AppBarButton>
             <AppBarButton Label="Gộp và nén" Command="{x:Bind ViewModel.MergeAndCompressCommand}"
-                          CommandParameter="{x:Bind FileList.SelectedItems, Mode=OneWay}"
+                          CommandParameter="{x:Bind FileList.SelectedItems, Mode=OneTime}"
                           ToolTipService.ToolTip="Gộp file rồi gửi sang Nén PDF tự động">
                 <AppBarButton.Icon><FontIcon Glyph="&#xE74B;"/></AppBarButton.Icon>
             </AppBarButton>

@@ -74,6 +74,39 @@ public partial class ImageOptimizerViewModel : ObservableObject
         _handoffService = handoffService;
         _filePickerService = filePickerService;
         _notificationService = notificationService;
+
+        LoadSettings();
+        PropertyChanged += ImageOptimizerViewModel_PropertyChanged;
+    }
+
+    private void ImageOptimizerViewModel_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName is nameof(AvifCrf) or nameof(ResolutionIndex))
+        {
+            SaveSettings();
+        }
+    }
+
+    private void LoadSettings()
+    {
+        try
+        {
+            var localSettings = Windows.Storage.ApplicationData.Current.LocalSettings;
+            if (localSettings.Values["ImageOptimizer_AvifCrf"] is double crf) AvifCrf = crf;
+            if (localSettings.Values["ImageOptimizer_ResolutionIndex"] is int resIndex) ResolutionIndex = resIndex;
+        }
+        catch { /* Ignore if unpackaged */ }
+    }
+
+    private void SaveSettings()
+    {
+        try
+        {
+            var localSettings = Windows.Storage.ApplicationData.Current.LocalSettings;
+            localSettings.Values["ImageOptimizer_AvifCrf"] = AvifCrf;
+            localSettings.Values["ImageOptimizer_ResolutionIndex"] = ResolutionIndex;
+        }
+        catch { /* Ignore if unpackaged */ }
     }
 
     [RelayCommand]

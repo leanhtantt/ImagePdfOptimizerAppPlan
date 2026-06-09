@@ -52,6 +52,31 @@ public partial class PdfCompressorViewModel : ObservableObject
         _filePickerService = filePickerService;
         StatusService = statusService;
         _notificationService = notificationService;
+
+        LoadSettings();
+        Settings.PropertyChanged += (s, e) => SaveSettings();
+    }
+
+    private void LoadSettings()
+    {
+        try
+        {
+            var localSettings = Windows.Storage.ApplicationData.Current.LocalSettings;
+            if (localSettings.Values["PdfCompressor_Dpi"] is int dpi) Settings.Dpi = dpi;
+            if (localSettings.Values["PdfCompressor_JpegQuality"] is int quality) Settings.JpegQuality = quality;
+        }
+        catch { /* Ignore if unpackaged */ }
+    }
+
+    private void SaveSettings()
+    {
+        try
+        {
+            var localSettings = Windows.Storage.ApplicationData.Current.LocalSettings;
+            localSettings.Values["PdfCompressor_Dpi"] = Settings.Dpi;
+            localSettings.Values["PdfCompressor_JpegQuality"] = Settings.JpegQuality;
+        }
+        catch { /* Ignore if unpackaged */ }
     }
 
     [RelayCommand]
@@ -68,8 +93,8 @@ public partial class PdfCompressorViewModel : ObservableObject
     private async Task OpenFolderAsync()
     {
         if (Session == null || string.IsNullOrEmpty(Session.CurrentVersionPath)) return;
-        string dir = Path.GetDirectoryName(Session.CurrentVersionPath);
-        if (Directory.Exists(dir))
+        string? dir = Path.GetDirectoryName(Session.CurrentVersionPath);
+        if (!string.IsNullOrEmpty(dir) && Directory.Exists(dir))
         {
             await Windows.System.Launcher.LaunchFolderPathAsync(dir);
         }
