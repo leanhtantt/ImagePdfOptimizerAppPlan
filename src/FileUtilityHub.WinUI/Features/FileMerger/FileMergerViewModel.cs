@@ -25,7 +25,7 @@ public partial class FileMergerViewModel : ObservableObject
     private CancellationTokenSource? _cancellationTokenSource;
 
     private static readonly string[] SupportedExtensions =
-        [".jpg", ".jpeg", ".png", ".webp", ".avif", ".bmp", ".tif", ".tiff", ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx"];
+        [".jpg", ".jpeg", ".png", ".webp", ".avif", ".bmp", ".tif", ".tiff", ".pdf"];
 
     // --- Observable Properties ---
 
@@ -285,7 +285,8 @@ public partial class FileMergerViewModel : ObservableObject
         var outputDir = GetOutputDirectory();
         Directory.CreateDirectory(outputDir);
 
-        var outputPath = Path.Combine(outputDir, config.OutputFileName);
+        var outputPath = GetAvailableOutputPath(outputDir, config.OutputFileName);
+        config.OutputFileName = Path.GetFileName(outputPath);
 
         // Create temp directory
         var tempDir = Path.Combine(outputDir, $"_pdf_temp_{Guid.NewGuid():N}");
@@ -337,7 +338,7 @@ public partial class FileMergerViewModel : ObservableObject
             {
                 HasActiveWarning = true;
                 WarningTitle = "Không có tài liệu nào được chuẩn bị thành công";
-                WarningMessage = "Kiểm tra lại file input hoặc môi trường Python.";
+                WarningMessage = "Kiểm tra lại file input hoặc thành phần xử lý của ứng dụng.";
                 WarningSeverity = WarningSeverityLevel.Error;
                 return;
             }
@@ -461,10 +462,34 @@ public partial class FileMergerViewModel : ObservableObject
             },
             Dpi = Dpi,
             JpegQuality = JpegQuality,
-            OutputFileName = string.IsNullOrWhiteSpace(OutputFileName)
-                ? "combined-documents.pdf"
-                : OutputFileName
+            OutputFileName = NormalizeOutputFileName(OutputFileName)
         };
+    }
+
+    private static string NormalizeOutputFileName(string? value)
+    {
+        var fileName = Path.GetFileName(value?.Trim());
+        if (string.IsNullOrWhiteSpace(fileName))
+            return "combined-documents.pdf";
+
+        return fileName.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase)
+            ? fileName
+            : $"{fileName}.pdf";
+    }
+
+    private static string GetAvailableOutputPath(string outputDir, string fileName)
+    {
+        var outputPath = Path.Combine(outputDir, fileName);
+        if (!File.Exists(outputPath))
+            return outputPath;
+
+        var baseName = Path.GetFileNameWithoutExtension(fileName);
+        for (var suffix = 1; ; suffix++)
+        {
+            outputPath = Path.Combine(outputDir, $"{baseName}_{suffix}.pdf");
+            if (!File.Exists(outputPath))
+                return outputPath;
+        }
     }
 
     private string GetOutputDirectory()
@@ -492,8 +517,7 @@ public partial class FileMergerViewModel : ObservableObject
 
     private void UpdateProfile()
     {
-        bool hasOfficeOrPdf = MergeItems.Any(i =>
-            i.Format is "pdf" or "doc" or "docx" or "xls" or "xlsx" or "ppt" or "pptx");
+        bool hasOfficeOrPdf = MergeItems.Any(i => i.Format is "pdf");
 
         CurrentProfile = hasOfficeOrPdf ? MergeInputProfile.ScannedDocuments : MergeInputProfile.ImageOnly;
     }

@@ -14,7 +14,7 @@ public class OfficeConvertService
     {
         // Assume script is next to the executable in Tools/office folder
         var baseDir = AppDomain.CurrentDomain.BaseDirectory;
-        _pythonScriptPath = Path.Combine(baseDir, "Tools", "office", "office_to_pdf.py");
+        _pythonScriptPath = Path.Combine(baseDir, "Tools", "office", "office_to_pdf.exe");
     }
 
     /// <summary>
@@ -42,8 +42,8 @@ public class OfficeConvertService
 
         process.StartInfo = new ProcessStartInfo
         {
-            FileName = "python",
-            Arguments = $"\"{_pythonScriptPath}\" \"{inputFilePath}\" \"{outputFolder}\"",
+            FileName = _pythonScriptPath,
+            Arguments = $"\"{inputFilePath}\" \"{outputFolder}\"",
             UseShellExecute = false,
             CreateNoWindow = true,
             RedirectStandardOutput = true,
@@ -107,7 +107,7 @@ public class OfficeConvertService
         }
         catch (System.ComponentModel.Win32Exception)
         {
-            throw new Exception("Cần Python + pywin32 để chuyển Office sang PDF. Không tìm thấy lệnh 'python' trong môi trường.");
+            throw new Exception("Không tìm thấy công cụ chuyển đổi Office sang PDF (thiếu file office_to_pdf.exe).");
         }
     }
 }

@@ -1,5 +1,7 @@
 ## .NET / Visual Studio
 [Bb]in/
+!Tools/ffmpeg/bin/
+!Tools/ffmpeg/bin/ffmpeg.exe
 [Oo]bj/
 [Dd]ebug/
 [Rr]elease/

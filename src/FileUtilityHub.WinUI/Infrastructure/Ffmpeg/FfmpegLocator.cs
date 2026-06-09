@@ -13,11 +13,9 @@ public class FfmpegLocator
         if (File.Exists(bundledPath))
             return bundledPath;
 
-        var localFfmpeg = Path.Combine(currentDir, "ffmpeg.exe");
-        if (File.Exists(localFfmpeg))
-            return localFfmpeg;
-
-        return "ffmpeg"; // Assume it's in PATH as fallback
+        throw new FileNotFoundException(
+            "Bản cài đặt thiếu FFmpeg bundled. Vui lòng cài lại hoặc cập nhật ứng dụng.",
+            bundledPath);
     }
 
     public bool IsFfmpegAvailable()
@@ -37,7 +35,12 @@ public class FfmpegLocator
                 }
             };
             process.Start();
-            process.WaitForExit(2000);
+            if (!process.WaitForExit(5000))
+            {
+                process.Kill(true);
+                return false;
+            }
+
             return process.ExitCode == 0;
         }
         catch

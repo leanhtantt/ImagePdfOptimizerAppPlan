@@ -31,6 +31,8 @@ x86/
 [Aa][Rr][Mm]64/
 bld/
 [Bb]in/
+!src/FileUtilityHub.WinUI/Tools/ffmpeg/bin/
+!src/FileUtilityHub.WinUI/Tools/ffmpeg/bin/ffmpeg.exe
 [Oo]bj/
 [Ll]og/
 [Ll]ogs/

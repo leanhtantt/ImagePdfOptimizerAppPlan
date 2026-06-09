@@ -16,9 +16,8 @@ public class FfmpegRunner
     public async Task<bool> RunCommandAsync(string arguments)
     {
         var exe = _locator.LocateFfmpeg();
-        var tcs = new TaskCompletionSource<bool>();
-        
-        var process = new Process
+
+        using var process = new Process
         {
             StartInfo = new ProcessStartInfo
             {
@@ -28,17 +27,16 @@ public class FfmpegRunner
                 RedirectStandardError = true,
                 UseShellExecute = false,
                 CreateNoWindow = true
-            },
-            EnableRaisingEvents = true
-        };
-
-        process.Exited += (sender, args) =>
-        {
-            tcs.SetResult(process.ExitCode == 0);
-            process.Dispose();
+            }
         };
 
         process.Start();
-        return await tcs.Task;
+        var standardOutput = process.StandardOutput.ReadToEndAsync();
+        var standardError = process.StandardError.ReadToEndAsync();
+
+        await process.WaitForExitAsync();
+        await Task.WhenAll(standardOutput, standardError);
+
+        return process.ExitCode == 0;
     }
 }

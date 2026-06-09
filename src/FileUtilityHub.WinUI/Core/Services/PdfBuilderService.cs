@@ -17,7 +17,6 @@ namespace FileUtilityHub_WinUI.Core.Services;
 public class PdfBuilderService
 {
     private readonly FfmpegRunner _ffmpegRunner;
-    private readonly OfficeConvertService _officeConvertService;
     private readonly PdfRenderService _pdfRenderService;
 
     // A4 dimensions in PDF points (1 point = 1/72 inch)
@@ -26,11 +25,9 @@ public class PdfBuilderService
 
     public PdfBuilderService(
         FfmpegRunner ffmpegRunner,
-        OfficeConvertService officeConvertService,
         PdfRenderService pdfRenderService)
     {
         _ffmpegRunner = ffmpegRunner;
-        _officeConvertService = officeConvertService;
         _pdfRenderService = pdfRenderService;
     }
 
@@ -49,7 +46,6 @@ public class PdfBuilderService
             var ext = item.Format.ToLowerInvariant();
             bool isImage = ext is "jpg" or "jpeg" or "png" or "webp" or "avif" or "bmp" or "tif" or "tiff" or "heic";
             bool isPdf = ext is "pdf";
-            bool isOffice = ext is "doc" or "docx" or "xls" or "xlsx" or "ppt" or "pptx";
 
             if (isImage)
             {
@@ -74,15 +70,9 @@ public class PdfBuilderService
                 item.PreparedJpegPaths.Add(tempJpgPath);
                 item.PageCount = 1;
             }
-            else if (isPdf || isOffice)
+            else if (isPdf)
             {
                 string pdfToRender = item.SourcePath;
-
-                if (isOffice)
-                {
-                    // Convert Office to Temp PDF first
-                    pdfToRender = await _officeConvertService.ConvertToPdfAsync(item.SourcePath, tempDir, ct);
-                }
 
                 // Render PDF to JPEGs
                 bool grayscale = config.ColorMode == PdfColorMode.Grayscale;
@@ -154,7 +144,7 @@ public class PdfBuilderService
         for (int i = 0; i < pageCount; i++)
         {
             var jpegPath = allJpegPaths[i];
-            var (imgWidth, imgHeight) = ReadJpegDimensions(jpegPath);
+            var (imgWidth, imgHeight, componentCount) = ReadJpegInfo(jpegPath);
 
             var pageObj = 3 + (i * 3);
             var imageObj = pageObj + 1;
@@ -170,7 +160,7 @@ public class PdfBuilderService
 
             // Image XObject (embed raw JPEG bytes)
             var jpegBytes = File.ReadAllBytes(jpegPath);
-            var colorSpace = config.ColorMode == PdfColorMode.Grayscale ? "/DeviceGray" : "/DeviceRGB";
+            var colorSpace = componentCount == 1 ? "/DeviceGray" : "/DeviceRGB";
             var imageDict = $"<< /Type /XObject /Subtype /Image /Width {imgWidth} /Height {imgHeight} /ColorSpace {colorSpace} /BitsPerComponent 8 /Filter /DCTDecode /Length {jpegBytes.Length} >>";
             AddPdfStreamObject(stream, offsets, imageObj, imageDict, jpegBytes);
 
@@ -244,7 +234,7 @@ public class PdfBuilderService
     /// <summary>
     /// Reads JPEG dimensions from file header without loading full image.
     /// </summary>
-    private static (int width, int height) ReadJpegDimensions(string jpegPath)
+    private static (int width, int height, int componentCount) ReadJpegInfo(string jpegPath)
     {
         try
         {
@@ -253,7 +243,7 @@ public class PdfBuilderService
 
             // Verify JPEG SOI marker
             if (reader.ReadByte() != 0xFF || reader.ReadByte() != 0xD8)
-                return (100, 100);
+                return (100, 100, 3);
 
             while (fs.Position < fs.Length - 1)
             {
@@ -272,9 +262,10 @@ public class PdfBuilderService
                     reader.ReadByte();
                     int height = (reader.ReadByte() << 8) | reader.ReadByte();
                     int width = (reader.ReadByte() << 8) | reader.ReadByte();
+                    int componentCount = reader.ReadByte();
 
                     if (width > 0 && height > 0)
-                        return (width, height);
+                        return (width, height, componentCount);
                 }
                 else if (marker != 0x00 && marker != 0x01 && !(marker >= 0xD0 && marker <= 0xD9))
                 {
@@ -289,7 +280,7 @@ public class PdfBuilderService
             // Fallback
         }
 
-        return (100, 100);
+        return (100, 100, 3);
     }
 
     private static void WriteAscii(MemoryStream stream, string text)
