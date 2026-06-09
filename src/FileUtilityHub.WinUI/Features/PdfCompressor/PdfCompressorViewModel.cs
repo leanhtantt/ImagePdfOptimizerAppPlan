@@ -16,7 +16,7 @@ public partial class PdfCompressorViewModel : ObservableObject
 {
     private readonly PdfCompressorService _compressorService;
     private readonly IFilePickerService _filePickerService;
-    private readonly AppStatusService _statusService;
+    public AppStatusService StatusService { get; }
     private readonly INotificationService _notificationService;
 
     private CancellationTokenSource? _cancellationTokenSource;
@@ -50,7 +50,7 @@ public partial class PdfCompressorViewModel : ObservableObject
     {
         _compressorService = compressorService;
         _filePickerService = filePickerService;
-        _statusService = statusService;
+        StatusService = statusService;
         _notificationService = notificationService;
     }
 
@@ -98,7 +98,7 @@ public partial class PdfCompressorViewModel : ObservableObject
         VersionHistory.Clear();
         SelectedPreviewPage = null;
 
-        _statusService.StartProcessing("Đang tải file PDF và tạo thumbnail...", 1);
+        StatusService.StartProcessing("Đang tải file PDF và tạo thumbnail...", 1);
 
         try
         {
@@ -137,11 +137,11 @@ public partial class PdfCompressorViewModel : ObservableObject
             if (Pages.Count > 0)
                 SelectedPreviewPage = Pages[0];
 
-            _statusService.StopProcessing("Tải PDF thành công.");
+            StatusService.StopProcessing("Tải PDF thành công.");
         }
         catch (Exception ex)
         {
-            _statusService.StopProcessing("Lỗi khi tải PDF.");
+            StatusService.StopProcessing("Lỗi khi tải PDF.");
             _notificationService.ShowToast("Lỗi", ex.Message, "");
         }
         finally
@@ -197,7 +197,7 @@ public partial class PdfCompressorViewModel : ObservableObject
         _cancellationTokenSource = new CancellationTokenSource();
         var token = _cancellationTokenSource.Token;
 
-        _statusService.StartProcessing("Đang nén PDF...", Pages.Count);
+        StatusService.StartProcessing("Đang nén PDF...", Pages.Count);
 
         try
         {
@@ -205,7 +205,7 @@ public partial class PdfCompressorViewModel : ObservableObject
             
             var version = await _compressorService.CompressPdfAsync(Session, Settings, outputDir, (current, total, msg) =>
             {
-                _statusService.ReportProgress(current, total, msg);
+                StatusService.ReportProgress(current, total, msg);
             }, token);
 
             Session.CurrentVersionPath = version.FilePath;
@@ -219,11 +219,11 @@ public partial class PdfCompressorViewModel : ObservableObject
         }
         catch (OperationCanceledException)
         {
-            _statusService.StopProcessing("Đã huỷ nén.");
+            StatusService.StopProcessing("Đã huỷ nén.");
         }
         catch (Exception ex)
         {
-            _statusService.StopProcessing("Lỗi khi nén PDF.");
+            StatusService.StopProcessing("Lỗi khi nén PDF.");
             _notificationService.ShowToast("Lỗi", ex.Message, "");
         }
         finally

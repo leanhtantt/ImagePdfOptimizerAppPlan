@@ -41,7 +41,7 @@
                             <StackPanel Margin="0,8,0,8">
                                 <Grid Background="{ThemeResource LayerFillColorAltBrush}" BorderBrush="{ThemeResource SurfaceStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="4">
                                     <Image Source="{x:Bind ThumbnailPath, Mode=OneWay}" Stretch="Uniform" Margin="4"/>
-                                    <CheckBox IsChecked="{x:Bind IsSelected, Mode=TwoWay}" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="4" />
+                                    <CheckBox IsChecked="{x:Bind IsSelected, Mode=TwoWay}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="4" />
                                 </Grid>
                                 <TextBlock Text="{x:Bind DisplayPageNumber, Mode=OneWay}" HorizontalAlignment="Center" Margin="0,4,0,0" Style="{ThemeResource CaptionTextBlockStyle}" />
                             </StackPanel>
@@ -55,16 +55,22 @@
                 <TextBlock Text="Mở file PDF để xem trước" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorDisabledBrush}" 
                            Visibility="{x:Bind ViewModel.HasFile, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}, ConverterParameter=Invert}"/>
                 
-                <ScrollViewer x:Name="MainScrollViewer" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto" Visibility="{x:Bind ViewModel.HasFile, Mode=OneWay}">
+                <ScrollViewer x:Name="MainScrollViewer" ZoomMode="Enabled" MinZoomFactor="0.2" MaxZoomFactor="4.0" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" Visibility="{x:Bind ViewModel.HasFile, Mode=OneWay}">
                     <ItemsControl x:Name="MainItemsControl" ItemsSource="{x:Bind ViewModel.Pages}" Margin="16">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate x:DataType="models:PdfPageItem">
-                                <Grid Margin="0,0,0,24">
+                                <Grid Margin="0,0,0,24" DoubleTapped="PreviewPage_DoubleTapped" Background="Transparent">
                                     <Grid.RowDefinitions>
                                         <RowDefinition Height="*" />
                                         <RowDefinition Height="Auto" />
                                     </Grid.RowDefinitions>
-                                    <Image Grid.Row="0" Source="{x:Bind PreviewImagePath, Mode=OneWay}" Stretch="Uniform" HorizontalAlignment="Center" MaxWidth="1000" />
+                                    <Grid Grid.Row="0" HorizontalAlignment="Center">
+                                        <Image Source="{x:Bind PreviewImagePath, Mode=OneWay}" Stretch="Uniform" MaxWidth="1000" />
+                                        <!-- Selection Feedback Overlay -->
+                                        <Border BorderThickness="4" BorderBrush="{ThemeResource SystemControlHighlightAccentBrush}" Visibility="{x:Bind IsSelected, Mode=OneWay}" />
+                                        <Grid Background="{ThemeResource SystemControlHighlightAccentBrush}" Opacity="0.1" Visibility="{x:Bind IsSelected, Mode=OneWay}" />
+                                        <FontIcon Glyph="&#xE73E;" FontSize="48" Foreground="{ThemeResource SystemControlHighlightAccentBrush}" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="16" Visibility="{x:Bind IsSelected, Mode=OneWay}" />
+                                    </Grid>
                                     <Border Grid.Row="1" Background="{ThemeResource SystemControlBackgroundBaseLowBrush}" HorizontalAlignment="Center" Margin="0,8,0,0" Padding="12,4" CornerRadius="4">
                                         <TextBlock Text="{x:Bind DisplayPageNumber, Mode=OneWay}" Style="{ThemeResource CaptionTextBlockStyle}" />
                                     </Border>
@@ -184,6 +190,16 @@
                     </StackPanel>
                 </ScrollViewer>
             </Border>
+        </Grid>
+
+        <!-- Loading Overlay -->
+        <Grid Grid.RowSpan="3" Background="{ThemeResource SystemControlPageBackgroundBaseLowBrush}" Visibility="{x:Bind ViewModel.IsProcessing, Mode=OneWay}">
+            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="16" Background="{ThemeResource SolidBackgroundFillColorBaseBrush}" Padding="48" CornerRadius="8" BorderBrush="{ThemeResource SurfaceStrokeColorDefaultBrush}" BorderThickness="1">
+                <ProgressRing IsActive="{x:Bind ViewModel.IsProcessing, Mode=OneWay}" Width="64" Height="64" HorizontalAlignment="Center"/>
+                <TextBlock Text="{x:Bind ViewModel.StatusService.StatusMessage, Mode=OneWay}" Style="{ThemeResource SubtitleTextBlockStyle}" HorizontalAlignment="Center" />
+                
+                <Button Content="Hủy" Command="{x:Bind ViewModel.CancelCommand}" HorizontalAlignment="Center" Margin="0,16,0,0" Style="{ThemeResource DefaultButtonStyle}"/>
+            </StackPanel>
         </Grid>
     </Grid>
 </Page>

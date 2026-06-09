@@ -26,4 +26,12 @@ public sealed partial class PdfCompressorPage : Page
             }
         }
     }
+
+    private void PreviewPage_DoubleTapped(object sender, Microsoft.UI.Xaml.Input.DoubleTappedRoutedEventArgs e)
+    {
+        if ((sender as Microsoft.UI.Xaml.FrameworkElement)?.DataContext is Core.Models.PdfPageItem page)
+        {
+            page.IsSelected = !page.IsSelected;
+        }
+    }
 }
