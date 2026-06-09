@@ -116,7 +116,7 @@ public partial class PdfCompressorViewModel : ObservableObject
     {
         IsProcessing = true;
         HasFile = false;
-        
+
         var existingHistory = isReload && Session != null ? Session.VersionHistory.ToList() : null;
 
         Pages.Clear();
@@ -264,5 +264,119 @@ public partial class PdfCompressorViewModel : ObservableObject
     private void Cancel()
     {
         _cancellationTokenSource?.Cancel();
+    }
+
+    [RelayCommand(CanExecute = nameof(CanEditPdf))]
+    private void RotateLeft()
+    {
+        var targets = Pages.Where(p => p.IsSelected).ToList();
+        if (targets.Count == 0 && SelectedPreviewPage != null) targets.Add(SelectedPreviewPage);
+        foreach (var page in targets) page.RotationAngle = NormalizeRotation(page.RotationAngle - 90);
+    }
+
+    [RelayCommand(CanExecute = nameof(CanEditPdf))]
+    private void RotateRight()
+    {
+        var targets = Pages.Where(p => p.IsSelected).ToList();
+        if (targets.Count == 0 && SelectedPreviewPage != null) targets.Add(SelectedPreviewPage);
+        foreach (var page in targets) page.RotationAngle = NormalizeRotation(page.RotationAngle + 90);
+    }
+
+    [RelayCommand(CanExecute = nameof(CanEditPdf))]
+    private async Task SavePdfAsync()
+    {
+        if (Session == null || !HasFile) return;
+
+        bool hasChanges = Pages.Any(p => NormalizeRotation(p.RotationAngle - p.SavedRotationAngle) != 0);
+        if (!hasChanges)
+        {
+            _notificationService.ShowToast("Không có thay đổi", "Chưa có trang nào được xoay để lưu.", "");
+            return;
+        }
+
+        IsProcessing = true;
+        StatusService.StartProcessing("Đang lưu file...", 1);
+
+        try
+        {
+            string sourcePath = Session.CurrentVersionPath;
+            string tempPath = CreateTemporarySavePath(sourcePath);
+            int[] rotations = Pages
+                .Select(page => (int)NormalizeRotation(page.RotationAngle - page.SavedRotationAngle))
+                .ToArray();
+
+            try
+            {
+                await Task.Run(() =>
+                {
+                    using var doc = PdfSharp.Pdf.IO.PdfReader.Open(sourcePath, PdfSharp.Pdf.IO.PdfDocumentOpenMode.Modify);
+                    if (doc.PageCount != rotations.Length)
+                    {
+                        throw new InvalidOperationException("Số trang PDF đã thay đổi. Vui lòng mở lại file rồi thử lại.");
+                    }
+
+                    for (int i = 0; i < doc.PageCount; i++)
+                    {
+                        if (rotations[i] != 0)
+                        {
+                            doc.Pages[i].Rotate = (int)NormalizeRotation(doc.Pages[i].Rotate + rotations[i]);
+                        }
+                    }
+                    doc.Save(tempPath);
+                });
+
+                File.Move(tempPath, sourcePath, overwrite: true);
+            }
+            finally
+            {
+                if (File.Exists(tempPath))
+                {
+                    File.Delete(tempPath);
+                }
+            }
+
+            foreach (var page in Pages)
+            {
+                page.SavedRotationAngle = page.RotationAngle;
+            }
+
+            _notificationService.ShowToast("Thành công", "Đã lưu góc xoay vào file hiện tại.", "");
+        }
+        catch (Exception ex)
+        {
+            _notificationService.ShowToast("Lỗi", "Không thể lưu PDF: " + ex.Message, "");
+        }
+        finally
+        {
+            StatusService.StopProcessing("Lưu hoàn tất.");
+            IsProcessing = false;
+        }
+    }
+
+    private bool CanEditPdf() => HasFile && !IsProcessing;
+
+    private static double NormalizeRotation(double angle) => (angle % 360 + 360) % 360;
+
+    private static string CreateTemporarySavePath(string sourcePath)
+    {
+        string dir = Path.GetDirectoryName(sourcePath) ?? Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
+        string name = Path.GetFileNameWithoutExtension(sourcePath);
+        return Path.Combine(dir, $".{name}_{Guid.NewGuid():N}.tmp.pdf");
+    }
+
+    partial void OnIsProcessingChanged(bool value)
+    {
+        CompressCommand.NotifyCanExecuteChanged();
+        RotateLeftCommand.NotifyCanExecuteChanged();
+        RotateRightCommand.NotifyCanExecuteChanged();
+        SavePdfCommand.NotifyCanExecuteChanged();
+    }
+
+    partial void OnHasFileChanged(bool value)
+    {
+        CompressCommand.NotifyCanExecuteChanged();
+        RotateLeftCommand.NotifyCanExecuteChanged();
+        RotateRightCommand.NotifyCanExecuteChanged();
+        SavePdfCommand.NotifyCanExecuteChanged();
     }
 }

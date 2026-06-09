@@ -28,6 +28,11 @@ if (Test-Path -LiteralPath $publishDir) {
     Remove-Item -LiteralPath $resolvedPublish -Recurse -Force
 }
 
+dotnet clean $project -c Release -r $Runtime
+if ($LASTEXITCODE -ne 0) {
+    throw "dotnet clean thất bại."
+}
+
 dotnet publish $project `
     -c Release `
     -r $Runtime `

@@ -17,12 +17,16 @@ public sealed partial class PdfCompressorPage : Page
     {
         if (e.ClickedItem is Core.Models.PdfPageItem clickedPage)
         {
-            var container = MainItemsControl.ContainerFromItem(clickedPage) as Microsoft.UI.Xaml.UIElement;
+            ViewModel.SelectedPreviewPage = clickedPage;
+
+            var container = MainItemsControl.ContainerFromItem(clickedPage) as Microsoft.UI.Xaml.FrameworkElement;
             if (container != null)
             {
-                var transform = container.TransformToVisual(MainItemsControl);
-                var point = transform.TransformPoint(new Windows.Foundation.Point(0, 0));
-                MainScrollViewer.ChangeView(null, point.Y, null);
+                container.StartBringIntoView(new Microsoft.UI.Xaml.BringIntoViewOptions
+                {
+                    AnimationDesired = true,
+                    VerticalAlignmentRatio = 0
+                });
             }
         }
     }

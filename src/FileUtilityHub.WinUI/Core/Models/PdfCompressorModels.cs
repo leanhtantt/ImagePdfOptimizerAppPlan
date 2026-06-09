@@ -24,6 +24,11 @@ public partial class PdfPageItem : ObservableObject
     [ObservableProperty]
     private string? _errorMessage;
     
+    [ObservableProperty]
+    private double _rotationAngle = 0;
+
+    public double SavedRotationAngle { get; set; }
+
     public string DisplayPageNumber => $"Trang {PageNumber}";
 }
 
