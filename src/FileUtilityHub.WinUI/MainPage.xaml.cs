@@ -48,6 +48,10 @@ public sealed partial class MainPage : Page
             {
                 ContentFrame.Navigate(typeof(Features.DocumentOcr.DocumentOcrPage));
             }
+            else if (navItemTag == "PdfSplit")
+            {
+                ContentFrame.Navigate(typeof(Features.PdfSplit.PdfSplitPage));
+            }
             else
             {
                 ContentFrame.Navigate(typeof(PlaceholderPage), navItemTag);

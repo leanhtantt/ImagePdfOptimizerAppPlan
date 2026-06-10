@@ -8,6 +8,7 @@ using FileUtilityHub_WinUI.Features.ImageOptimizer;
 using FileUtilityHub_WinUI.Features.FileMerger;
 using FileUtilityHub_WinUI.Features.PdfConverter;
 using FileUtilityHub_WinUI.Features.DocumentOcr;
+using FileUtilityHub_WinUI.Features.PdfSplit;
 using FileUtilityHub_WinUI.Shell.Services;
 
 namespace FileUtilityHub_WinUI;
@@ -79,6 +80,8 @@ public partial class App : Application
         services.AddTransient<Features.PdfCompressor.PdfCompressorViewModel>();
         services.AddTransient<PdfConverterViewModel>();
         services.AddTransient<DocumentOcrViewModel>();
+        services.AddSingleton<PdfSplitService>();
+        services.AddTransient<PdfSplitViewModel>();
 
         return services.BuildServiceProvider();
     }

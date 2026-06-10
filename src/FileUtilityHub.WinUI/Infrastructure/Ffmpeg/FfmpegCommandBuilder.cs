@@ -83,4 +83,20 @@ public static class FfmpegCommandBuilder
 
         return $"-hide_banner -loglevel error -y -i \"{inputPath}\" {vfArg}-frames:v 1 -q:v {qscale} -pix_fmt {pixelFormat} \"{outputPath}\"";
     }
+
+    /// <summary>
+    /// Build PNG conversion command (lossless).
+    /// </summary>
+    public static string BuildPngConvertCommand(string inputPath, string outputPath)
+    {
+        return $"-hide_banner -loglevel error -y -i \"{inputPath}\" -frames:v 1 \"{outputPath}\"";
+    }
+
+    /// <summary>
+    /// Build WebP conversion command with quality setting.
+    /// </summary>
+    public static string BuildWebpConvertCommand(string inputPath, string outputPath, int quality)
+    {
+        return $"-hide_banner -loglevel error -y -i \"{inputPath}\" -frames:v 1 -c:v libwebp -quality {quality} \"{outputPath}\"";
+    }
 }
