@@ -60,6 +60,50 @@ public sealed partial class DocumentOcrPage : Page
         FileList.SelectedItems.Clear();
     }
 
+    private void FileListItem_DoubleTapped(object sender, Microsoft.UI.Xaml.Input.DoubleTappedRoutedEventArgs e)
+    {
+        if ((sender as Microsoft.UI.Xaml.FrameworkElement)?.DataContext is Core.Models.DocumentOcrItem item)
+        {
+            OpenFile(item.SourcePath);
+        }
+    }
+
+    private void MenuFlyoutItem_Open_Click(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
+    {
+        if ((sender as Microsoft.UI.Xaml.FrameworkElement)?.DataContext is Core.Models.DocumentOcrItem item)
+        {
+            OpenFile(item.SourcePath);
+        }
+    }
+
+    private void MenuFlyoutItem_OpenFolder_Click(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
+    {
+        if ((sender as Microsoft.UI.Xaml.FrameworkElement)?.DataContext is Core.Models.DocumentOcrItem item)
+        {
+            OpenFolderAndSelectFile(item.SourcePath);
+        }
+    }
+
+    private void MenuFlyoutItem_Remove_Click(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
+    {
+        if ((sender as Microsoft.UI.Xaml.FrameworkElement)?.DataContext is Core.Models.DocumentOcrItem item)
+        {
+            ViewModel.RemoveSelectedCommand.Execute(new System.Collections.Generic.List<object> { item });
+        }
+    }
+
+    private void OpenFile(string filePath)
+    {
+        try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo { FileName = filePath, UseShellExecute = true }); }
+        catch { }
+    }
+
+    private void OpenFolderAndSelectFile(string filePath)
+    {
+        try { System.Diagnostics.Process.Start("explorer.exe", $"/select,\"{filePath}\""); }
+        catch { }
+    }
+
     private static T? FindVisualParent<T>(Microsoft.UI.Xaml.DependencyObject? child) where T : Microsoft.UI.Xaml.DependencyObject
     {
         while (child != null)

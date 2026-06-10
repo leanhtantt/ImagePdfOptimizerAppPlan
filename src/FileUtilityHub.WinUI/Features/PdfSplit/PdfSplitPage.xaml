@@ -65,7 +65,14 @@
                     </ListView.ItemContainerStyle>
                     <ListView.ItemTemplate>
                         <DataTemplate x:DataType="models:PdfSplitItem">
-                            <Grid Padding="12,8" ColumnSpacing="12">
+                            <Grid Padding="12,8" ColumnSpacing="12" Background="Transparent" DoubleTapped="FileListItem_DoubleTapped">
+                                <Grid.ContextFlyout>
+                                    <MenuFlyout>
+                                        <MenuFlyoutItem Text="Mở file" Icon="OpenFile" Click="MenuFlyoutItem_Open_Click" />
+                                        <MenuFlyoutItem Text="Mở thư mục" Icon="Folder" Click="MenuFlyoutItem_OpenFolder_Click" />
+                                        <MenuFlyoutItem Text="Xóa khỏi danh sách" Icon="Delete" Click="MenuFlyoutItem_Remove_Click" />
+                                    </MenuFlyout>
+                                </Grid.ContextFlyout>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="Auto" /> <!-- Icon -->
                                     <ColumnDefinition Width="*" />    <!-- Name -->
