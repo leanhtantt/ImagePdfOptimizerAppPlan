@@ -22,6 +22,33 @@ public static class FfmpegCommandBuilder
     }
 
     /// <summary>
+    /// Build AVIF conversion command with explicit color mode support.
+    /// Used by Convert PDF to produce grayscale or RGB AVIF intermediates.
+    /// </summary>
+    public static string BuildAvifConvertWithColorModeCommand(
+        string inputPath, string outputPath,
+        int crf, int cpuUsed, int maxLongEdge, string pixelFormat)
+    {
+        var filters = new System.Collections.Generic.List<string>();
+
+        if (maxLongEdge > 0)
+        {
+            filters.Add($"scale='if(gt(iw,ih),min(iw,{maxLongEdge}),-2)':'if(gt(iw,ih),-2,min(ih,{maxLongEdge}))'");
+        }
+
+        if (pixelFormat == "gray")
+        {
+            filters.Add("format=gray");
+        }
+
+        var vfArg = filters.Count > 0
+            ? $"-vf \"{string.Join(",", filters)}\" "
+            : "";
+
+        return $"-hide_banner -loglevel error -y -i \"{inputPath}\" -frames:v 1 {vfArg}-c:v libaom-av1 -crf {crf} -cpu-used {cpuUsed} -pix_fmt {pixelFormat} \"{outputPath}\"";
+    }
+
+    /// <summary>
     /// Build image probe command (future use).
     /// </summary>
     public static string BuildImageProbeCommand(string inputPath)

@@ -6,6 +6,7 @@ using FileUtilityHub_WinUI.Infrastructure.Ffmpeg;
 using FileUtilityHub_WinUI.Infrastructure.FileSystem;
 using FileUtilityHub_WinUI.Features.ImageOptimizer;
 using FileUtilityHub_WinUI.Features.FileMerger;
+using FileUtilityHub_WinUI.Features.PdfConverter;
 using FileUtilityHub_WinUI.Shell.Services;
 
 namespace FileUtilityHub_WinUI;
@@ -60,6 +61,8 @@ public partial class App : Application
         services.AddSingleton<PdfRenderService>();
         services.AddSingleton<PdfBuilderService>();
         services.AddSingleton<PdfCompressorService>();
+        services.AddSingleton<OfficeConvertService>();
+        services.AddSingleton<PdfConvertWorkflowService>();
         services.AddSingleton<IFeatureHandoffService, FeatureHandoffService>();
         services.AddSingleton<IFilePickerService, FilePickerService>();
         services.AddSingleton<INotificationService, AppNotificationService>();
@@ -68,6 +71,7 @@ public partial class App : Application
         services.AddTransient<ImageOptimizerViewModel>();
         services.AddTransient<FileMergerViewModel>();
         services.AddTransient<Features.PdfCompressor.PdfCompressorViewModel>();
+        services.AddTransient<PdfConverterViewModel>();
 
         return services.BuildServiceProvider();
     }

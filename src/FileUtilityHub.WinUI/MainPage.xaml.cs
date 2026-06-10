@@ -40,6 +40,10 @@ public sealed partial class MainPage : Page
             {
                 ContentFrame.Navigate(typeof(Features.PdfCompressor.PdfCompressorPage));
             }
+            else if (navItemTag == "PdfConverter")
+            {
+                ContentFrame.Navigate(typeof(Features.PdfConverter.PdfConverterPage));
+            }
             else
             {
                 ContentFrame.Navigate(typeof(PlaceholderPage), navItemTag);
