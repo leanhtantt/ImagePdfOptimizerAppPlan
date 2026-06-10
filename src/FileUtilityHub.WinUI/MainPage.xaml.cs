@@ -44,6 +44,10 @@ public sealed partial class MainPage : Page
             {
                 ContentFrame.Navigate(typeof(Features.PdfConverter.PdfConverterPage));
             }
+            else if (navItemTag == "DocumentOcr")
+            {
+                ContentFrame.Navigate(typeof(Features.DocumentOcr.DocumentOcrPage));
+            }
             else
             {
                 ContentFrame.Navigate(typeof(PlaceholderPage), navItemTag);

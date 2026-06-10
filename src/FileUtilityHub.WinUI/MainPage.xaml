@@ -42,6 +42,9 @@
                 <NavigationViewItem Content="Tách PDF" Tag="PdfSplit">
                     <NavigationViewItem.Icon><FontIcon Glyph="&#xE8A9;"/></NavigationViewItem.Icon>
                 </NavigationViewItem>
+                <NavigationViewItem Content="OCR tài liệu" Tag="DocumentOcr">
+                    <NavigationViewItem.Icon><FontIcon Glyph="&#xE8D4;"/></NavigationViewItem.Icon>
+                </NavigationViewItem>
             </NavigationView.MenuItems>
             <Frame x:Name="ContentFrame" />
         </NavigationView>

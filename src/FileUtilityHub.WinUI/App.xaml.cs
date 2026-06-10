@@ -7,6 +7,7 @@ using FileUtilityHub_WinUI.Infrastructure.FileSystem;
 using FileUtilityHub_WinUI.Features.ImageOptimizer;
 using FileUtilityHub_WinUI.Features.FileMerger;
 using FileUtilityHub_WinUI.Features.PdfConverter;
+using FileUtilityHub_WinUI.Features.DocumentOcr;
 using FileUtilityHub_WinUI.Shell.Services;
 
 namespace FileUtilityHub_WinUI;
@@ -67,11 +68,17 @@ public partial class App : Application
         services.AddSingleton<IFilePickerService, FilePickerService>();
         services.AddSingleton<INotificationService, AppNotificationService>();
 
+        // OCR Services
+        services.AddSingleton<OcrApiClient>();
+        services.AddSingleton<OcrOutputManager>();
+        services.AddSingleton<DocumentOcrWorkflowService>();
+
         // ViewModels
         services.AddTransient<ImageOptimizerViewModel>();
         services.AddTransient<FileMergerViewModel>();
         services.AddTransient<Features.PdfCompressor.PdfCompressorViewModel>();
         services.AddTransient<PdfConverterViewModel>();
+        services.AddTransient<DocumentOcrViewModel>();
 
         return services.BuildServiceProvider();
     }
