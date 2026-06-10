@@ -16,6 +16,8 @@ public sealed partial class PdfConverterPage : Page
         // Resolve ViewModel from DI container
         ViewModel = App.Current.Services.GetRequiredService<PdfConverterViewModel>();
         this.DataContext = ViewModel;
+
+        this.AddHandler(Microsoft.UI.Xaml.UIElement.PointerPressedEvent, new Microsoft.UI.Xaml.Input.PointerEventHandler(OnPagePointerPressed), true);
     }
 
     private void OnRemoveSelectedClick(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
@@ -50,18 +52,24 @@ public sealed partial class PdfConverterPage : Page
         ViewModel.OpenOutputFolderCommand.Execute(selectedItem);
     }
 
-    private void RootGrid_Tapped(object sender, Microsoft.UI.Xaml.Input.TappedRoutedEventArgs e)
+    private void OnPagePointerPressed(object sender, Microsoft.UI.Xaml.Input.PointerRoutedEventArgs e)
     {
         var clickedElement = e.OriginalSource as Microsoft.UI.Xaml.DependencyObject;
 
-        var clickedItem = FindVisualParent<ListViewItem>(clickedElement);
+        var clickedItem = FindVisualParent<Microsoft.UI.Xaml.Controls.ListViewItem>(clickedElement);
         if (clickedItem != null) return;
 
         var clickedButton = FindVisualParent<Microsoft.UI.Xaml.Controls.Primitives.ButtonBase>(clickedElement);
         if (clickedButton != null) return;
 
         var clickedInput = FindVisualParent<Microsoft.UI.Xaml.Controls.Control>(clickedElement);
-        if (clickedInput is TextBox || clickedInput is NumberBox || clickedInput is ComboBox || clickedInput is ToggleSwitch || clickedInput is CommandBar) 
+        if (clickedInput is Microsoft.UI.Xaml.Controls.TextBox || 
+            clickedInput is Microsoft.UI.Xaml.Controls.NumberBox || 
+            clickedInput is Microsoft.UI.Xaml.Controls.ComboBox || 
+            clickedInput is Microsoft.UI.Xaml.Controls.Primitives.ToggleButton || 
+            clickedInput is Microsoft.UI.Xaml.Controls.ToggleSwitch || 
+            clickedInput is Microsoft.UI.Xaml.Controls.CommandBar ||
+            clickedInput is Microsoft.UI.Xaml.Controls.Slider) 
             return;
 
         FileList.SelectedItems.Clear();

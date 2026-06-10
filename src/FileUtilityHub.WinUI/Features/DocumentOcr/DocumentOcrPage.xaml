@@ -9,7 +9,7 @@
     mc:Ignorable="d"
     NavigationCacheMode="Required">
 
-    <Grid Tapped="RootGrid_Tapped" Background="Transparent">
+    <Grid Background="Transparent">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" /> <!-- Toolbar -->
             <RowDefinition Height="Auto" /> <!-- InfoBar -->

@@ -64,7 +64,6 @@
                 <!-- ListView with improved row template (doc 06 section 8) -->
                 <ListView x:Name="FileList" ItemsSource="{x:Bind ViewModel.ImageItems, Mode=OneWay}" SelectionMode="Extended"
                           SelectionChanged="FileList_SelectionChanged"
-                          Tapped="FileList_Tapped"
                           Visibility="{x:Bind ViewModel.HasImages, Mode=OneWay}">
                     <ListView.ItemContainerStyle>
                         <Style TargetType="ListViewItem">

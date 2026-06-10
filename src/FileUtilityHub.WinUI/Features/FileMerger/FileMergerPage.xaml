@@ -48,7 +48,6 @@
                 <ListView x:Name="FileList" ItemsSource="{x:Bind ViewModel.MergeItems, Mode=OneWay}" SelectionMode="Extended"
                           CanReorderItems="True" AllowDrop="True"
                           SelectionChanged="FileList_SelectionChanged"
-                          Tapped="FileList_Tapped"
                           DragItemsCompleted="FileList_DragItemsCompleted"
                           Visibility="{x:Bind ViewModel.HasFiles, Mode=OneWay}">
                     <ListView.ItemContainerStyle>
