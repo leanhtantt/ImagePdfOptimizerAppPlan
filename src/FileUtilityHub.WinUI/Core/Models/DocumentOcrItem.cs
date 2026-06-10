@@ -57,6 +57,21 @@ public sealed class DocumentOcrItem : INotifyPropertyChanged
         _ => Status.ToString()
     };
 
+    /// <summary>
+    /// Maps OCR-specific status to shared ProcessingStatus for FileStatusBadge.
+    /// </summary>
+    public ProcessingStatus DisplayStatus => Status switch
+    {
+        OcrProcessingStatus.Pending => ProcessingStatus.Pending,
+        OcrProcessingStatus.Uploading => ProcessingStatus.Processing,
+        OcrProcessingStatus.Processing => ProcessingStatus.Processing,
+        OcrProcessingStatus.BuildingDocx => ProcessingStatus.Processing,
+        OcrProcessingStatus.Success => ProcessingStatus.Success,
+        OcrProcessingStatus.Error => ProcessingStatus.Error,
+        OcrProcessingStatus.Cancelled => ProcessingStatus.Skipped,
+        _ => ProcessingStatus.Pending
+    };
+
     public string ResultDisplay
     {
         get
@@ -85,6 +100,7 @@ public sealed class DocumentOcrItem : INotifyPropertyChanged
             _status = value;
             OnPropertyChanged();
             OnPropertyChanged(nameof(StatusDisplay));
+            OnPropertyChanged(nameof(DisplayStatus));
             OnPropertyChanged(nameof(ResultDisplay));
         }
     }

@@ -12,9 +12,6 @@ public sealed partial class PlaceholderPage : Page
 {
     private static readonly Dictionary<string, string> ModuleNames = new()
     {
-        ["FileMergePdfBuilder"] = "Gộp file",
-        ["PdfCompressor"] = "Nén PDF",
-        ["PdfConverter"] = "Convert PDF",
         ["PdfSplit"] = "Tách PDF",
     };
 

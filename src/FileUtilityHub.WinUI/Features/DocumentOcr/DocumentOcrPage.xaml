@@ -110,15 +110,12 @@
                                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                            VerticalAlignment="Center" HorizontalAlignment="Center"/>
 
-                                <!-- Status Text -->
-                                <Border Grid.Column="6" CornerRadius="4" Padding="8,4"
-                                        Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}"
-                                        VerticalAlignment="Center" MinWidth="100">
-                                    <TextBlock Text="{x:Bind StatusDisplay, Mode=OneWay}"
-                                               Style="{ThemeResource CaptionTextBlockStyle}"
-                                               HorizontalAlignment="Center"
-                                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
-                                </Border>
+                                <!-- Status Badge -->
+                                <shared:FileStatusBadge Grid.Column="6"
+                                                         Status="{x:Bind DisplayStatus, Mode=OneWay}"
+                                                         StatusLabel="{x:Bind StatusDisplay, Mode=OneWay}"
+                                                         VerticalAlignment="Center"
+                                                         MinWidth="100" />
                             </Grid>
                         </DataTemplate>
                     </ListView.ItemTemplate>
