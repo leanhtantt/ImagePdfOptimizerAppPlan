@@ -72,6 +72,9 @@ public partial class FileMergerViewModel : ObservableObject
     public bool IsPdfRasterizationEnabled => !PreservePdfPages;
 
     [ObservableProperty]
+    private bool _batchMergeMode = false;
+
+    [ObservableProperty]
     private string _outputFileName = "combined-documents.pdf";
 
     // Warning state
@@ -112,7 +115,7 @@ public partial class FileMergerViewModel : ObservableObject
 
     private void FileMergerViewModel_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
     {
-        if (e.PropertyName is nameof(Dpi) or nameof(JpegQuality) or nameof(PreservePdfPages) or nameof(PageModeIndex) or nameof(ColorModeIndex) or nameof(JpegQScale) or nameof(ResolutionIndex))
+        if (e.PropertyName is nameof(Dpi) or nameof(JpegQuality) or nameof(PreservePdfPages) or nameof(PageModeIndex) or nameof(ColorModeIndex) or nameof(JpegQScale) or nameof(ResolutionIndex) or nameof(BatchMergeMode))
         {
             SaveSettings();
         }
@@ -130,6 +133,7 @@ public partial class FileMergerViewModel : ObservableObject
             if (localSettings.Values["FileMerger_ColorModeIndex"] is int colorMode) ColorModeIndex = colorMode;
             if (localSettings.Values["FileMerger_JpegQScale"] is double qscale) JpegQScale = qscale;
             if (localSettings.Values["FileMerger_ResolutionIndex"] is int resIndex) ResolutionIndex = resIndex;
+            if (localSettings.Values["FileMerger_BatchMergeMode"] is bool batchMerge) BatchMergeMode = batchMerge;
         }
         catch { /* Ignore if unpackaged */ }
     }
@@ -146,6 +150,7 @@ public partial class FileMergerViewModel : ObservableObject
             localSettings.Values["FileMerger_ColorModeIndex"] = ColorModeIndex;
             localSettings.Values["FileMerger_JpegQScale"] = JpegQScale;
             localSettings.Values["FileMerger_ResolutionIndex"] = ResolutionIndex;
+            localSettings.Values["FileMerger_BatchMergeMode"] = BatchMergeMode;
         }
         catch { /* Ignore if unpackaged */ }
     }
@@ -189,6 +194,9 @@ public partial class FileMergerViewModel : ObservableObject
     private async Task AddFilesAsync()
     {
         var paths = await _filePickerService.PickFilesAsync(SupportedExtensions);
+        if (paths.Count > 0 && MergeItems.Count == 0) 
+            CurrentFolder = string.Empty;
+            
         int nextOrder = MergeItems.Count + 1;
         foreach (var path in paths)
         {
@@ -252,6 +260,7 @@ public partial class FileMergerViewModel : ObservableObject
     private void ClearAll()
     {
         MergeItems.Clear();
+        CurrentFolder = string.Empty;
         HasActiveWarning = false;
         UpdateStatus();
     }
@@ -354,18 +363,54 @@ public partial class FileMergerViewModel : ObservableObject
             }
 
             _statusService.ReportProgress(MergeItems.Count, MergeItems.Count, "Đang xuất file PDF...");
-            _pdfBuilderService.BuildPdf(outputPath, preparedItems, config);
 
-            _statusService.StopProcessing($"Đã gộp thành công!");
+            if (BatchMergeMode)
+            {
+                var groupedItems = preparedItems.GroupBy(i => Path.GetDirectoryName(i.SourcePath));
+                int groupCount = groupedItems.Count();
+                int processedGroups = 0;
+                
+                foreach (var group in groupedItems)
+                {
+                    var folderPath = group.Key;
+                    var folderName = string.IsNullOrEmpty(folderPath) ? "combined-documents" : Path.GetFileName(folderPath);
+                    if (string.IsNullOrEmpty(folderName)) folderName = "combined-documents";
+                    
+                    // Put the output PDF in the parent directory of the folder (next to the folder)
+                    string parentDir = string.IsNullOrEmpty(folderPath) ? null : Path.GetDirectoryName(folderPath);
+                    if (string.IsNullOrEmpty(parentDir) || !Directory.Exists(parentDir))
+                        parentDir = outputDir; // fallback
+                        
+                    var groupOutputPath = GetAvailableOutputPath(parentDir, $"{folderName}.pdf");
+                    
+                    _pdfBuilderService.BuildPdf(groupOutputPath, group.ToList(), config);
+                    processedGroups++;
+                    
+                    _statusService.ReportProgress(MergeItems.Count, MergeItems.Count, $"Đang xuất file PDF... ({processedGroups}/{groupCount})");
+                }
+                
+                _statusService.StopProcessing("Đã gộp thành công!");
 
-            // Show results
-            var pdfSize = new FileInfo(outputPath).Length;
-            var pdfSizeMb = pdfSize / 1048576.0;
+                _notificationService.ShowToast(
+                    "Gộp PDF (Batch Mode) hoàn tất",
+                    $"{preparedItems.Count} file → {groupCount} file PDF riêng biệt",
+                    "ms-appx:///Assets/Square44x44Logo.scale-200.png");
+            }
+            else
+            {
+                _pdfBuilderService.BuildPdf(outputPath, preparedItems, config);
 
-            _notificationService.ShowToast(
-                "Gộp PDF hoàn tất",
-                $"{preparedItems.Count} file → {config.OutputFileName} ({pdfSizeMb:F2} MB)",
-                "ms-appx:///Assets/Square44x44Logo.scale-200.png");
+                _statusService.StopProcessing("Đã gộp thành công!");
+
+                // Show results
+                var pdfSize = new FileInfo(outputPath).Length;
+                var pdfSizeMb = pdfSize / 1048576.0;
+
+                _notificationService.ShowToast(
+                    "Gộp PDF hoàn tất",
+                    $"{preparedItems.Count} file → {config.OutputFileName} ({pdfSizeMb:F2} MB)",
+                    "ms-appx:///Assets/Square44x44Logo.scale-200.png");
+            }
 
             // Handle errors
             var errorItems = MergeItems.Where(i => i.Status == ProcessingStatus.Error).ToList();
@@ -407,6 +452,9 @@ public partial class FileMergerViewModel : ObservableObject
     {
         if (parameter is IReadOnlyList<IStorageItem> items)
         {
+            if (MergeItems.Count == 0) 
+                CurrentFolder = string.Empty;
+                
             int nextOrder = MergeItems.Count + 1;
             foreach (var storageItem in items)
             {
@@ -506,7 +554,14 @@ public partial class FileMergerViewModel : ObservableObject
     private string GetOutputDirectory()
     {
         if (!string.IsNullOrEmpty(CurrentFolder))
+        {
+            // If they imported a folder, place the output NEXT TO that folder (in its parent directory)
+            var parentDir = Path.GetDirectoryName(CurrentFolder);
+            if (!string.IsNullOrEmpty(parentDir) && Directory.Exists(parentDir))
+                return parentDir;
+                
             return CurrentFolder;
+        }
 
         if (MergeItems.Count > 0)
         {

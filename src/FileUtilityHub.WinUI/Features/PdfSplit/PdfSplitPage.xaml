@@ -9,7 +9,7 @@
     mc:Ignorable="d"
     NavigationCacheMode="Required">
 
-    <Grid>
+    <Grid Tapped="RootGrid_Tapped" Background="Transparent">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" /> <!-- Toolbar -->
             <RowDefinition Height="Auto" /> <!-- InfoBar -->
@@ -25,6 +25,15 @@
             <AppBarButton Icon="Clear" Label="Xóa Tất Cả" Command="{x:Bind ViewModel.ClearAllCommand}"/>
             <AppBarSeparator/>
             <AppBarButton Icon="OpenLocal" Label="Mở Thư Mục" Command="{x:Bind ViewModel.OpenOutputCommand}"/>
+            
+            <AppBarElementContainer VerticalAlignment="Center" Margin="16,0,8,0">
+                <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                    <TextBlock Text="Chọn file &gt;=" VerticalAlignment="Center" Style="{ThemeResource CaptionTextBlockStyle}"/>
+                    <NumberBox x:Name="MinSizeNumberBox" Value="1" Minimum="0" SpinButtonPlacementMode="Hidden" Width="80" Height="32"/>
+                    <TextBlock Text="MB" VerticalAlignment="Center" Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                    <Button Content="Chọn" Click="OnSelectBySizeClick" Height="32"/>
+                </StackPanel>
+            </AppBarElementContainer>
         </CommandBar>
 
         <!-- 2. Warning InfoBar -->
@@ -190,7 +199,7 @@
                         <Grid Margin="0,12,0,0">
                             <!-- Start Button -->
                             <Button Style="{ThemeResource AccentButtonStyle}" HorizontalAlignment="Stretch" Padding="12"
-                                    Command="{x:Bind ViewModel.StartSplitCommand}"
+                                    Click="OnStartSplitClick"
                                     Visibility="{x:Bind ViewModel.IsProcessing, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}, ConverterParameter=Invert}">
                                 <StackPanel Orientation="Horizontal" Spacing="8">
                                     <FontIcon Glyph="&#xE8A9;"/>

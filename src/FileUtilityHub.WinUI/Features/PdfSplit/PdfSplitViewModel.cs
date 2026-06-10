@@ -166,10 +166,52 @@ public class PdfSplitViewModel : INotifyPropertyChanged
         AddFilesCommand = new RelayCommand(async () => await AddFilesAsync());
         ChooseFolderCommand = new RelayCommand(async () => await ChooseFolderAsync());
         ClearAllCommand = new RelayCommand(ClearAll);
-        StartSplitCommand = new RelayCommand(async () => await StartSplitAsync());
+        StartSplitCommand = new RelayCommand<object>(async (param) => await StartSplitAsync(param));
         CancelCommand = new RelayCommand(Cancel);
         HandleDropCommand = new RelayCommand<object>(HandleDrop);
         OpenOutputCommand = new RelayCommand(OpenFirstOutput);
+
+        LoadSettings();
+        PropertyChanged += OnPropertyChanged_SaveSettings;
+    }
+
+    private void OnPropertyChanged_SaveSettings(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName is nameof(DpiPresetIndex) or nameof(CustomDpi) or nameof(OutputFormatIndex) or 
+            nameof(JpegQuality) or nameof(AvifCrf) or nameof(WebPQuality))
+        {
+            SaveSettings();
+        }
+    }
+
+    private void LoadSettings()
+    {
+        try
+        {
+            var localSettings = Windows.Storage.ApplicationData.Current.LocalSettings;
+            if (localSettings.Values["PdfSplit_DpiPresetIndex"] is int dpiPreset) DpiPresetIndex = dpiPreset;
+            if (localSettings.Values["PdfSplit_CustomDpi"] is int customDpi) CustomDpi = customDpi;
+            if (localSettings.Values["PdfSplit_OutputFormatIndex"] is int outputFormat) OutputFormatIndex = outputFormat;
+            if (localSettings.Values["PdfSplit_JpegQuality"] is int jpegQuality) JpegQuality = jpegQuality;
+            if (localSettings.Values["PdfSplit_AvifCrf"] is int avifCrf) AvifCrf = avifCrf;
+            if (localSettings.Values["PdfSplit_WebPQuality"] is int webPQuality) WebPQuality = webPQuality;
+        }
+        catch { /* Ignore if unpackaged */ }
+    }
+
+    private void SaveSettings()
+    {
+        try
+        {
+            var localSettings = Windows.Storage.ApplicationData.Current.LocalSettings;
+            localSettings.Values["PdfSplit_DpiPresetIndex"] = DpiPresetIndex;
+            localSettings.Values["PdfSplit_CustomDpi"] = CustomDpi;
+            localSettings.Values["PdfSplit_OutputFormatIndex"] = OutputFormatIndex;
+            localSettings.Values["PdfSplit_JpegQuality"] = JpegQuality;
+            localSettings.Values["PdfSplit_AvifCrf"] = AvifCrf;
+            localSettings.Values["PdfSplit_WebPQuality"] = WebPQuality;
+        }
+        catch { /* Ignore if unpackaged */ }
     }
 
     private async Task AddFilesAsync()
@@ -259,10 +301,20 @@ public class PdfSplitViewModel : INotifyPropertyChanged
         HasActiveWarning = false;
     }
 
-    private async Task StartSplitAsync()
+    private async Task StartSplitAsync(object? selectedItemsParam)
     {
-        // Allow re-extract: process all items (Pending, Error, AND Success for re-run)
-        var itemsToProcess = SplitItems.ToList();
+        // Determine which items to process
+        List<PdfSplitItem> itemsToProcess;
+
+        if (selectedItemsParam is IEnumerable<object> selectedList)
+        {
+            var selected = selectedList.Cast<PdfSplitItem>().ToList();
+            itemsToProcess = selected.Count > 0 ? selected : SplitItems.ToList();
+        }
+        else
+        {
+            itemsToProcess = SplitItems.ToList();
+        }
 
         if (itemsToProcess.Count == 0) return;
 

@@ -220,6 +220,17 @@
 
                         <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="16">
                             <StackPanel Spacing="8">
+                                <CheckBox Content="Gộp theo thư mục (Batch Merge)" IsChecked="{x:Bind ViewModel.BatchMergeMode, Mode=TwoWay}" />
+                                <TextBlock Text="Xuất nhiều file PDF độc lập. Tên file được lấy theo tên thư mục chứa file."
+                                           Style="{ThemeResource CaptionTextBlockStyle}"
+                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                           TextWrapping="Wrap"/>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="16"
+                                Visibility="{x:Bind ViewModel.BatchMergeMode, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}, ConverterParameter=Invert}">
+                            <StackPanel Spacing="8">
                                 <TextBlock Text="Tên file PDF" Style="{ThemeResource BodyStrongTextBlockStyle}"/>
                                 <TextBox Text="{x:Bind ViewModel.OutputFileName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                          PlaceholderText="combined-documents.pdf" />
