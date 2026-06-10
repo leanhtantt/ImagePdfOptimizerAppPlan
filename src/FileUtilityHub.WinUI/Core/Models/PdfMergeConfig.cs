@@ -44,6 +44,12 @@ public sealed class PdfMergeConfig
     public PdfColorMode ColorMode { get; set; } = PdfColorMode.Rgb;
 
     /// <summary>
+    /// Copies PDF pages directly instead of rendering them to JPEG first.
+    /// This preserves text/vector quality and avoids inflating already-optimized PDFs.
+    /// </summary>
+    public bool PreservePdfPages { get; set; } = true;
+
+    /// <summary>
     /// ScannedDocuments profile: DPI setting for rendering (100-400)
     /// </summary>
     public int Dpi { get; set; } = 200;

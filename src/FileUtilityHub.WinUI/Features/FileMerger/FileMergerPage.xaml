@@ -168,7 +168,18 @@
                         <StackPanel Spacing="24" Visibility="{x:Bind ViewModel.IsScannedDocument, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}">
                             <InfoBar Severity="Informational" IsOpen="True" IsClosable="False"
                                      Title="Chế độ Scanned PDF"
-                                     Message="Tài liệu sẽ được rasterize thành hình ảnh để tránh lỗi font và layout." />
+                                     Message="Mặc định giữ nguyên trang PDF để không tăng dung lượng hoặc giảm chất lượng. Tắt lựa chọn bên dưới chỉ khi cần rasterize tài liệu." />
+
+                            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="16">
+                                <StackPanel Spacing="8">
+                                    <CheckBox Content="Giữ nguyên chất lượng và cấu trúc trang PDF"
+                                              IsChecked="{x:Bind ViewModel.PreservePdfPages, Mode=TwoWay}" />
+                                    <TextBlock Text="Khuyên dùng khi chỉ cần gộp PDF. DPI và chất lượng JPEG chỉ áp dụng khi tắt lựa chọn này."
+                                               Style="{ThemeResource CaptionTextBlockStyle}"
+                                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                               TextWrapping="Wrap"/>
+                                </StackPanel>
+                            </Border>
 
                             <!-- Card: DPI -->
                             <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="16">
@@ -176,6 +187,7 @@
                                     <TextBlock Text="Độ phân giải (DPI)" Style="{ThemeResource BodyStrongTextBlockStyle}"/>
                                     <TextBlock Text="DPI cao hơn = sắc nét hơn nhưng file nặng hơn." Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap"/>
                                     <Slider Value="{x:Bind ViewModel.Dpi, Mode=TwoWay}"
+                                            IsEnabled="{x:Bind ViewModel.IsPdfRasterizationEnabled, Mode=OneWay}"
                                             Minimum="50" Maximum="400" StepFrequency="10"
                                             TickFrequency="50" TickPlacement="Outside" />
                                     <TextBlock Text="{x:Bind ViewModel.Dpi, Mode=OneWay}" HorizontalAlignment="Right" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
@@ -187,6 +199,7 @@
                                 <StackPanel Spacing="8">
                                     <TextBlock Text="Chất lượng nén ảnh (1-80)" Style="{ThemeResource BodyStrongTextBlockStyle}"/>
                                     <Slider Value="{x:Bind ViewModel.JpegQuality, Mode=TwoWay}"
+                                            IsEnabled="{x:Bind ViewModel.IsPdfRasterizationEnabled, Mode=OneWay}"
                                             Minimum="1" Maximum="80" StepFrequency="1"
                                             TickFrequency="10" TickPlacement="Outside" />
                                     <TextBlock Text="{x:Bind ViewModel.JpegQuality, Mode=OneWay}" HorizontalAlignment="Right" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>

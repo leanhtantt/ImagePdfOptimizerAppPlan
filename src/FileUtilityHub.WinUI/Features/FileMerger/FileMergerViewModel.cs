@@ -66,6 +66,12 @@ public partial class FileMergerViewModel : ObservableObject
     private int _jpegQuality = 80; // For PDF/Office
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsPdfRasterizationEnabled))]
+    private bool _preservePdfPages = true;
+
+    public bool IsPdfRasterizationEnabled => !PreservePdfPages;
+
+    [ObservableProperty]
     private string _outputFileName = "combined-documents.pdf";
 
     // Warning state
@@ -106,7 +112,7 @@ public partial class FileMergerViewModel : ObservableObject
 
     private void FileMergerViewModel_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
     {
-        if (e.PropertyName is nameof(Dpi) or nameof(JpegQuality) or nameof(PageModeIndex) or nameof(ColorModeIndex) or nameof(JpegQScale) or nameof(ResolutionIndex))
+        if (e.PropertyName is nameof(Dpi) or nameof(JpegQuality) or nameof(PreservePdfPages) or nameof(PageModeIndex) or nameof(ColorModeIndex) or nameof(JpegQScale) or nameof(ResolutionIndex))
         {
             SaveSettings();
         }
@@ -119,6 +125,7 @@ public partial class FileMergerViewModel : ObservableObject
             var localSettings = Windows.Storage.ApplicationData.Current.LocalSettings;
             if (localSettings.Values["FileMerger_Dpi"] is int dpi) Dpi = dpi;
             if (localSettings.Values["FileMerger_JpegQuality"] is int quality) JpegQuality = quality;
+            if (localSettings.Values["FileMerger_PreservePdfPages"] is bool preservePdfPages) PreservePdfPages = preservePdfPages;
             if (localSettings.Values["FileMerger_PageModeIndex"] is int pageMode) PageModeIndex = pageMode;
             if (localSettings.Values["FileMerger_ColorModeIndex"] is int colorMode) ColorModeIndex = colorMode;
             if (localSettings.Values["FileMerger_JpegQScale"] is double qscale) JpegQScale = qscale;
@@ -134,6 +141,7 @@ public partial class FileMergerViewModel : ObservableObject
             var localSettings = Windows.Storage.ApplicationData.Current.LocalSettings;
             localSettings.Values["FileMerger_Dpi"] = Dpi;
             localSettings.Values["FileMerger_JpegQuality"] = JpegQuality;
+            localSettings.Values["FileMerger_PreservePdfPages"] = PreservePdfPages;
             localSettings.Values["FileMerger_PageModeIndex"] = PageModeIndex;
             localSettings.Values["FileMerger_ColorModeIndex"] = ColorModeIndex;
             localSettings.Values["FileMerger_JpegQScale"] = JpegQScale;
@@ -330,7 +338,9 @@ public partial class FileMergerViewModel : ObservableObject
 
             // Step 2: Build PDF from prepared images
             var preparedItems = MergeItems
-                .Where(i => i.Status == ProcessingStatus.Success && i.PreparedJpegPaths.Count > 0)
+                .Where(i => i.Status == ProcessingStatus.Success
+                    && (i.PreparedJpegPaths.Count > 0
+                        || (config.PreservePdfPages && i.Format.Equals("pdf", StringComparison.OrdinalIgnoreCase))))
                 .OrderBy(i => i.OrderIndex)
                 .ToList();
 
@@ -445,6 +455,7 @@ public partial class FileMergerViewModel : ObservableObject
         return new PdfMergeConfig
         {
             InputProfile = CurrentProfile,
+            PreservePdfPages = PreservePdfPages,
             PageMode = PageModeIndex switch
             {
                 1 => PdfPageMode.A4Full,
